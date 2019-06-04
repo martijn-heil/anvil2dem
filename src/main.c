@@ -1,25 +1,25 @@
 /*
-    MIT License
+  MIT License
 
-    Copyright (c) 2017 Martijn Heil
+  Copyright (c) 2017-2019 Martijn Heil
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
 
     nin-anvil - Generate a heightmap from a .mca file.
 */
@@ -93,22 +93,20 @@ static void handle_chunk(nbt_node *chunk);
 static bool handle_section(nbt_node *section, void *aux);
 
 #define block_xz_to_index(x, z) ((z-1) * 16 + x - 1)
+#define imgbuf_rowcol_to_index(row, col) ((row-1) * 16 + col - 1)
 
 uint8_t current_chunk_heightmap[256];
-static uint8_t *image_buf;
+static uint8_t *image_buf; // Gets allocated in main
+static long long origin_cartesian_x, origin_cartesian_y;
 
 static bool is_ground(uint8_t block_id)
 {
   return block_id != 0; // TODOs
 }
 
+
 #define BUF_SIZE 52428800ULL
 static uint8_t buf[BUF_SIZE];
-static void output_point(long long cartesian_x, long long cartesian_y, unsigned short height)
-{
-
-}
-
 static void process_file(FILE *fp)
 {
   size_t size = fread(buf, 1, BUF_SIZE, fp);
@@ -184,11 +182,68 @@ int main(int argc, char *argv[])
     }
     process_file(fp);
     fclose(fp);
-    fflush(stdout);
   }
 
-  printf("</gml:FeatureCollection>");
+  TIFF *tif = TIFFOpen("out.tif", "w");
+  if(out == NULL)
+  {
+    fprintf(stderr, "Could not open out.tif for writing.");
+    // TODO print proper error message
+    exit(EXIT_FAILURE);
+  }
+  GTIF *gtif = GTIFNew(tif)
+  if(gtif == NULL)
+  {
+    fprintf(stderr, "Could not open tif as GeoTIFF");
+    exit(EXIT_FAILURE);
+  }
+  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, imgbuf_width);
+  TIFFSetField(tif, TIFFTAG_IMAGEHEIGHT, imgbuf_height);
+  // TODO write other tags
+
+
+
+  // Write all rows to TIFF.
+  // NOTE: uint32 is a typedef from libtiff.
+  // It is NOT guaranteed to be the same as uint32_t.
+  // It's used here beccause TIFFWriteScanLine expects the row value to be
+  // that type.
+  for(uint32 row = 1; row <= imgbuf_width; row++)
+  {
+    // tdata_t is `typedef void* tdata_t`
+    if(TIFFWriteScanLine(tif, (tdata_t) (imgbuf + (row-1)*imgbuf_width), row, 0) != 1)
+    {
+      fprintf(stderr, "TIFFWriteScanLine returned an error.");
+      exit(EXIT_FAILURE);
+      // TODO print TIFF error message
+    }
+  }
+
+  // Write GeoTIFF keys..
+  // TODO GeoTIFF keys
+  GTIFWriteKeys(gtif);
+  GTIFFree(gtif);
+  TIFFClose(tif);
+
+
+
   return EXIT_SUCCESS;
+}
+
+long long max_cartesian_x = 0;
+long long min_cartesian_x = 0;
+long long max_cartesian_y = 0;
+long long min_cartesian y = 0;
+static void output_point(long long cartesian_x, long long cartesian_y, uint8_t height)
+{
+  long long row = cartesian_x - origin_cartesian_x + 1;
+  long long column = origin_cartesian_y - cartesian_y + 1;
+  image_buf[imgbuf_rowcol_to_index(row, columm)] = height;
+
+  if(cartesian_x > max_cartesian_x) max_cartesian_x = cartesian_x;
+  if(cartesian_x < min_cartesian_x) min_cartesian_x = cartesian_x;
+  if(cartesian_y > max_cartesian_y) max_cartesian_y = cartesian_y;
+  if(cartesian_y < min_cartesian_y) min_cartesian_y = cartesian_y;
 }
 
 static int8_t last_section_y = -1;
@@ -245,6 +300,7 @@ static void handle_chunk(nbt_node *chunk)
 
   for(size_t i = 0; i < 256; i++)
   {
+    // Outputs point at real mc world cartesian coordinates, so the z is now called y and is inverted
     output_point(chunkpos.x * 16 + i % 16, 0 - (chunkpos.z * 16 + i / 16), current_chunk_heightmap[i]);
   }
 
