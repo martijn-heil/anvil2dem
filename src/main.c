@@ -97,7 +97,7 @@ static bool handle_section(nbt_node *section, void *aux);
 
 static uint8_t current_chunk_heightmap[256];
 static uint8_t *image_buf; // Gets allocated in main
-static long long origin_cartesian_x, origin_cartesian_y;
+static long long origin_cartesian_x, origin_cartesian_y; // Origin is top-left
 
 static long long max_cartesian_x = 0;
 static long long min_cartesian_x = 0;
@@ -170,7 +170,8 @@ static void process_file(FILE *fp)
 
 int main(int argc, char *argv[])
 {
-  image_buf = malloc((argc - 1) * 262144); // 262144: One byte for every block column in a region, 512x512
+  // One byte for every block column in a region, 512x512
+  image_buf = malloc((argc - 1) * (512*512));
   if(image_buf == NULL)
   {
     fprintf(stderr, "Could not allocate memory. (%s)", strerror(errno));
@@ -296,25 +297,32 @@ static void handle_chunk(nbt_node *chunk)
 
   for(size_t i = 0; i < 256; i++)
   {
-    // Outputs point at real mc world cartesian coordinates, so the z is now called y and is inverted
+    // Outputs point at absolute cartesian coordinates, so the Minecraft z is now called y and is inverted
     output_point(chunkpos.x * 16 + i % 16, 0 - (chunkpos.z * 16 + i / 16), current_chunk_heightmap[i]);
   }
-  long long new_max_cartesian_x = chunkpos.x * 16 + 15;
-  long long new_min_cartesian_x = chunkpos.x * 16;
-  long long new_max_cartesian_y = 0 - (chunkpos.z * 16 + 15);
-  long long new_min_cartesian_y = 0 - chunkpos.z * 16;
+
+  // Update filled-in data bounds
+  long long llchunkx = (long long) chunkpos.x;
+  long long llchunkz = (long long) chunkpos.z;
+  long long new_max_cartesian_x = llchunkx * 16 + 15;
+  long long new_min_cartesian_x = llchunkx * 16;
+  long long new_max_cartesian_y = 0 - (llchunkz * 16 + 15);
+  long long new_min_cartesian_y = 0 - llchunkz * 16;
   if(new_max_cartesian_x > max_cartesian_x) max_cartesian_x = new_max_cartesian_x;
   if(new_min_cartesian_x < min_cartesian_x) min_cartesian_x = new_min_cartesian_x;
   if(new_max_cartesian_y > max_cartesian_y) max_cartesian_y = new_max_cartesian_y;
   if(new_min_cartesian_y < min_cartesian_y) min_cartesian_y = new_min_cartesian_y;
 
+  // Reset current chunk heightmap
   memset(current_chunk_heightmap, 0, 256);
   last_section_y = -1;
 }
 
 static bool handle_section(nbt_node *section, void *aux)
 {
-  if((section->name != NULL && strcmp(section->name, "Sections") == 0) || section->type != TAG_COMPOUND) return true; // Ignore the root element
+  if((section->name != NULL &&
+        strcmp(section->name, "Sections") == 0) ||
+      section->type != TAG_COMPOUND) return true; // Ignore the root element
 
   nbt_node *section_y_nbt = nbt_find_by_name(section, "Y");
   if(section_y_nbt == NULL)
