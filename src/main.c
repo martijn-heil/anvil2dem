@@ -95,9 +95,14 @@ static bool handle_section(nbt_node *section, void *aux);
 #define block_xz_to_index(x, z) ((z-1) * 16 + x - 1)
 #define imgbuf_rowcol_to_index(row, col) ((row-1) * 16 + col - 1)
 
-uint8_t current_chunk_heightmap[256];
+static uint8_t current_chunk_heightmap[256];
 static uint8_t *image_buf; // Gets allocated in main
 static long long origin_cartesian_x, origin_cartesian_y;
+
+static long long max_cartesian_x = 0;
+static long long min_cartesian_x = 0;
+static long long max_cartesian_y = 0;
+static long long min_cartesian y = 0;
 
 static bool is_ground(uint8_t block_id)
 {
@@ -230,20 +235,11 @@ int main(int argc, char *argv[])
   return EXIT_SUCCESS;
 }
 
-long long max_cartesian_x = 0;
-long long min_cartesian_x = 0;
-long long max_cartesian_y = 0;
-long long min_cartesian y = 0;
 static void output_point(long long cartesian_x, long long cartesian_y, uint8_t height)
 {
   long long row = cartesian_x - origin_cartesian_x + 1;
   long long column = origin_cartesian_y - cartesian_y + 1;
   image_buf[imgbuf_rowcol_to_index(row, columm)] = height;
-
-  if(cartesian_x > max_cartesian_x) max_cartesian_x = cartesian_x;
-  if(cartesian_x < min_cartesian_x) min_cartesian_x = cartesian_x;
-  if(cartesian_y > max_cartesian_y) max_cartesian_y = cartesian_y;
-  if(cartesian_y < min_cartesian_y) min_cartesian_y = cartesian_y;
 }
 
 static int8_t last_section_y = -1;
@@ -303,6 +299,14 @@ static void handle_chunk(nbt_node *chunk)
     // Outputs point at real mc world cartesian coordinates, so the z is now called y and is inverted
     output_point(chunkpos.x * 16 + i % 16, 0 - (chunkpos.z * 16 + i / 16), current_chunk_heightmap[i]);
   }
+  long long new_max_cartesian_x = chunkpos.x * 16 + 15;
+  long long new_min_cartesian_x = chunkpos.x * 16;
+  long long new_max_cartesian_y = 0 - (chunkpos.z * 16 + 15);
+  long long new_min_cartesian_y = 0 - chunkpos.z * 16;
+  if(new_max_cartesian_x > max_cartesian_x) max_cartesian_x = new_max_cartesian_x;
+  if(new_min_cartesian_x < min_cartesian_x) min_cartesian_x = new_min_cartesian_x;
+  if(new_max_cartesian_y > max_cartesian_y) max_cartesian_y = new_max_cartesian_y;
+  if(new_min_cartesian_y < min_cartesian_y) min_cartesian_y = new_min_cartesian_y;
 
   memset(current_chunk_heightmap, 0, 256);
   last_section_y = -1;
