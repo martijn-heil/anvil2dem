@@ -21,7 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 
-    nin-anvil - Generate a heightmap from a .mca file.
+  nin-anvil - Generate a DEM from .mca files.
 */
 
 #include <stdlib.h>
