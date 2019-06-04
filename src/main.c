@@ -315,10 +315,6 @@ static void handle_chunk(nbt_node *chunk)
 static bool handle_section(nbt_node *section, void *aux)
 {
   if((section->name != NULL && strcmp(section->name, "Sections") == 0) || section->type != TAG_COMPOUND) return true; // Ignore the root element
-  // printf("name: %s\n", section->name);
-  // char *dump = nbt_dump_ascii(section);
-  // printf("%s\n", dump);
-  //exit(EXIT_SUCCESS);
 
   nbt_node *section_y_nbt = nbt_find_by_name(section, "Y");
   if(section_y_nbt == NULL)
