@@ -129,11 +129,16 @@ static uint8_t current_chunk_heightmap[256];
 static uint8_t *image_buf; // Gets allocated in main
 static long long origin_cartesian_x, origin_cartesian_y; // Origin is top-left
 
+// These are continuously updated in handle_chunk()
 static long long max_cartesian_x = 0;
 static long long min_cartesian_x = 0;
 static long long max_cartesian_y = 0;
 static long long min_cartesian y = 0;
 
+/*
+ * Whether a block type should be ignored or not when calculating block column height
+ * This is useful for example when you want to exclude leaves and logs (trees) from the resulting DEM.
+ */
 static bool is_ground(uint8_t block_id)
 {
   return block_id != 0; // TODOs
