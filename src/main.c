@@ -93,9 +93,29 @@ static void handle_chunk(nbt_node *chunk);
 static bool handle_section(nbt_node *section, void *aux);
 
 #define block_xz_to_index(x, z) ((z-1) * 16 + x - 1)
+
+// Assumes that row and column start at 1, not at 0
 #define imgbuf_rowcol_to_index(row, col) ((row-1) * 16 + col - 1)
 
 static uint8_t current_chunk_heightmap[256];
+
+
+/*
+ * The image buffer gets allocated with ((argc-1) * 512*512) bytes, that is to say,
+ * it has one byte of space for each block in all regions that are submitted to the program to be
+ * processed. Upon allocation, the image buffer gets initialized with all-zero values.
+ *
+ * The image buffer gets filled gradually when reading chunks from region files, this does not happen in linear order,
+ * as the way the block columns are sorted in chunks does not allow for that.
+ *
+ * Chunks that have not been generated are skipped, so as a result, it could occur that the buffer's geographical bounds
+ * are larger than the geographical bounds of actually-inserted height data. When writing to the GeoTIFF only all bytes
+ * within the geographical bounds of the actually-inserted height data is written to the GeoTIFF. To achieve this,
+ * a max and min for the cartesian x and y of actually-inserted height data is kept track of in the variables below.
+ * These max and min are incremented on a by-chunk basis, not on individual block columns. If a chunk gets parsed that is
+ * currently outside the geographical bounds kept track of by these variables, they are incremented so that the chunk has
+ * expanded them.
+ */
 static uint8_t *image_buf; // Gets allocated in main
 static long long origin_cartesian_x, origin_cartesian_y; // Origin is top-left
 
@@ -203,21 +223,32 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Could not open tif as GeoTIFF");
     exit(EXIT_FAILURE);
   }
-  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, imgbuf_width);
-  TIFFSetField(tif, TIFFTAG_IMAGEHEIGHT, imgbuf_height);
+
+  size_t width = max_cartesian_x - min_cartesian_x + 1;
+  size_t height = max_cartesian_y - min_cartesian_y + 1;
+
+  // TODO check validity
+  size_t minrow = origin_cartesian_y - max_cartesian_y + 1; // starts at 1, not 0
+  size_t maxrow = origin_cartesian_y - min_cartesian_y + 1; // starts at 1, not 0
+  size_t mincol = origin_cartesian_x - max_cartesian_x + 1; // starts at 1, not 0
+  size_t maxcol = origin_cartesian_x - min_cartesian_x + 1; // starts at 1, not 0
+
+  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
+  TIFFSetField(tif, TIFFTAG_IMAGEHEIGHT, height);
   // TODO write other tags
 
 
 
   // Write all rows to TIFF.
   // NOTE: uint32 is a typedef from libtiff.
-  // It is NOT guaranteed to be the same as uint32_t.
+  // It is NOT explicitly guaranteed to be the same as uint32_t.
   // It's used here beccause TIFFWriteScanLine expects the row value to be
   // that type.
-  for(uint32 row = 1; row <= imgbuf_width; row++)
+  // TODO integer types should be the same or checked
+  for(uint32 row = minrow; row <= maxrow; row++)
   {
     // tdata_t is `typedef void* tdata_t`
-    if(TIFFWriteScanLine(tif, (tdata_t) (imgbuf + (row-1)*imgbuf_width), row, 0) != 1)
+    if(TIFFWriteScanLine(tif, (tdata_t) (imgbuf + imgbuf_rowcol_to_index(row, mincol)), row, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
       exit(EXIT_FAILURE);
