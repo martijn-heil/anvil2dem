@@ -99,9 +99,19 @@ static bool handle_section(nbt_node *section, void *aux);
 
 static uint8_t current_chunk_heightmap[256];
 
+/*
+ * About variable names:
+ *
+ * When a coordinate variable is named "cartesian" is is always an absolute coordinate, never relative,
+ * unless explicitly specified otherwise.
+ *
+ * Row and column are always relative to their container.
+ *
+ */
+
 
 /*
- * The image buffer gets allocated with ((argc-1) * 512*512) bytes, that is to say,
+ * The image buffer gets allocated with ((argc-1) * 512*512) bytes (in main), that is to say,
  * it has one byte of space for each block in all regions that are submitted to the program to be
  * processed. Upon allocation, the image buffer gets initialized with all-zero values.
  *
@@ -247,7 +257,7 @@ int main(int argc, char *argv[])
   // TODO integer types should be the same or checked
   for(uint32 row = minrow; row <= maxrow; row++)
   {
-    // tdata_t is `typedef void* tdata_t`
+    // tdata_t is TIFFalese for `typedef void* tdata_t`
     if(TIFFWriteScanLine(tif, (tdata_t) (imgbuf + imgbuf_rowcol_to_index(row, mincol)), row, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
