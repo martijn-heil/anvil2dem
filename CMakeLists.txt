@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.5)
 project(testproject C)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -pedantic -ggdb -ftrapv -pipe -Wall -Wextra -Wno-unused-function -D_POSIX_C_SOURCE -D_REENTRANT -D_POSIX_C_SOURCE -D_GNU_SOURCE -Wl,--no-as-needed -lz")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -pedantic -ggdb -ftrapv -pipe -Wall -Wextra -Wno-unused-function -D_POSIX_C_SOURCE -D_REENTRANT -D_POSIX_C_SOURCE -D_GNU_SOURCE -Wl,--no-as-needed -lz -ltiff -lgeotiff")
 
 include_directories(
     src/,

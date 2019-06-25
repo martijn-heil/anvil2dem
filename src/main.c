@@ -35,6 +35,9 @@
 
 #include <nbt/nbt.h>
 
+#include <xtiffio.h>
+#include <geotiffio.h>
+
 #define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
 #define ntohll(x) ((1==ntohl(1)) ? (x) : ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 
@@ -133,7 +136,7 @@ static long long origin_cartesian_x, origin_cartesian_y; // Origin is top-left
 static long long max_cartesian_x = 0;
 static long long min_cartesian_x = 0;
 static long long max_cartesian_y = 0;
-static long long min_cartesian y = 0;
+static long long min_cartesian_y = 0;
 
 /*
  * Whether a block type should be ignored or not when calculating block column height
@@ -226,13 +229,13 @@ int main(int argc, char *argv[])
   }
 
   TIFF *tif = TIFFOpen("out.tif", "w");
-  if(out == NULL)
+  if(tif == NULL)
   {
     fprintf(stderr, "Could not open out.tif for writing.");
     // TODO print proper error message
     exit(EXIT_FAILURE);
   }
-  GTIF *gtif = GTIFNew(tif)
+  GTIF *gtif = GTIFNew(tif);
   if(gtif == NULL)
   {
     fprintf(stderr, "Could not open tif as GeoTIFF");
@@ -249,7 +252,7 @@ int main(int argc, char *argv[])
   size_t maxcol = origin_cartesian_x - min_cartesian_x + 1; // starts at 1, not 0
 
   TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
-  TIFFSetField(tif, TIFFTAG_IMAGEHEIGHT, height);
+  //TIFFSetField(tif, TIFFTAG_IMAGEHEIGHT, height);
   // TODO write other tags
 
 
@@ -263,7 +266,7 @@ int main(int argc, char *argv[])
   for(uint32 row = minrow; row <= maxrow; row++)
   {
     // tdata_t is TIFFalese for `typedef void* tdata_t`
-    if(TIFFWriteScanLine(tif, (tdata_t) (imgbuf + imgbuf_rowcol_to_index(row, mincol)), row, 0) != 1)
+    if(TIFFWriteScanline(tif, (tdata_t) (image_buf + imgbuf_rowcol_to_index(row, mincol)), row, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
       exit(EXIT_FAILURE);
@@ -286,7 +289,7 @@ static void output_point(long long cartesian_x, long long cartesian_y, uint8_t h
 {
   long long row = cartesian_x - origin_cartesian_x + 1;
   long long column = origin_cartesian_y - cartesian_y + 1;
-  image_buf[imgbuf_rowcol_to_index(row, columm)] = height;
+  image_buf[imgbuf_rowcol_to_index(row, column)] = height;
 }
 
 static int8_t last_section_y = -1;
@@ -367,7 +370,7 @@ static void handle_chunk(nbt_node *chunk)
 static bool handle_section(nbt_node *section, void *aux)
 {
   if((section->name != NULL &&
-        strcmp(section->name, "Sections") == 0) ||
+      strcmp(section->name, "Sections") == 0) ||
       section->type != TAG_COMPOUND) return true; // Ignore the root element
 
   nbt_node *section_y_nbt = nbt_find_by_name(section, "Y");
