@@ -50,8 +50,8 @@
 #define ntoh64(x) ntohll(x)
 
 struct chunkpos {
-    int32_t x;
-    int32_t z;
+  int32_t x;
+  int32_t z;
 };
 
 /*
@@ -206,10 +206,65 @@ static void process_file(FILE *fp)
   }
 }
 
+void print_usage(const char *prog_str) {
+  printf(
+    "Usage: %s [options] region_file...\n"
+    "Options:\n"
+    "  -h, --help                Show this usage information.\n"
+    "  -v, --version             Show version information.\n"
+    "  --blocks=<file>           List of blocks that should be taken into account.\n"
+    "  --ignoredblocks=<file>    List of blocks that should NOT be taken into account.\n"
+    "  --compression=<scheme>    TIFF compression scheme, defaults to DEFLATE.\n"
+    "\n"
+    "scheme is case-insensitive and can be one of the following values:\n"
+    "NONE, "
+    "CCITTRLE, "
+    "CCITTFAX3, "
+    "CCITTFAX4, "
+    "LZW, "
+    "OJPEG, "
+    "JPEG, "
+    "NEXT, "
+    "CCITTRLEW, "
+    "PACKBITS, "
+    "THUNDERSCAN, "
+    "IT8CTPAD, "
+    "IT8LW, "
+    "IT8MP, "
+    "IT8BL, "
+    "PIXARFILM, "
+    "PIXARLOG, "
+    "DEFLATE, "
+    "ADOBE_DEFLATE, "
+    "DSC, "
+    "JBIG, "
+    "SGILOG, "
+    "SGILOG24, "
+    "JP2000\n"
+    ,prog_str
+  );
+}
+
+void print_version(void) {
+  printf("v1.0.0-SNAPSHOT\n");
+}
+
 int main(int argc, char *argv[])
 {
+  if(argc == 1 || (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)))
+  {
+    print_usage(argv[0]);
+    exit(EXIT_SUCCESS);
+  }
+
+  if(argc == 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0))
+  {
+    print_version();
+    exit(EXIT_SUCCESS);
+  }
+
   // One byte for every block column in a region, 512x512
-  image_buf = malloc((argc - 1) * (512*512));
+  image_buf = calloc((argc - 1) * (512*512), 1);
   if(image_buf == NULL)
   {
     fprintf(stderr, "Could not allocate memory. (%s)", strerror(errno));
@@ -242,17 +297,25 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  size_t width = max_cartesian_x - min_cartesian_x + 1;
-  size_t height = max_cartesian_y - min_cartesian_y + 1;
 
   // TODO check validity
-  size_t minrow = origin_cartesian_y - max_cartesian_y + 1; // starts at 1, not 0
-  size_t maxrow = origin_cartesian_y - min_cartesian_y + 1; // starts at 1, not 0
-  size_t mincol = origin_cartesian_x - max_cartesian_x + 1; // starts at 1, not 0
-  size_t maxcol = origin_cartesian_x - min_cartesian_x + 1; // starts at 1, not 0
+  // These all start at 1, not 0
+  size_t minrow = origin_cartesian_y - max_cartesian_y + 1;
+  size_t maxrow = origin_cartesian_y - min_cartesian_y + 1;
+  size_t maxcol = max_cartesian_x - origin_cartesian_x + 1;
+  size_t mincol = min_cartesian_x - origin_cartesian_x + 1;
 
+  size_t width = maxcol - mincol + 1;
+  size_t height = maxrow - minrow + 1;
+
+  // TODO checked integer casts to uint32 from TIFF
   TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
-  //TIFFSetField(tif, TIFFTAG_IMAGEHEIGHT, height);
+  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
+  TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
+  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8);
+  TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+  TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
+
   // TODO write other tags
 
 
@@ -265,14 +328,35 @@ int main(int argc, char *argv[])
   // TODO integer types should be the same or checked
   for(uint32 row = minrow; row <= maxrow; row++)
   {
+    /*printf("Width: %i,\n"
+        "calculated width: %i,\n"
+        "maxcol: %zu,\n"
+        "mincol: %zu,\n"
+        "Height: %i,\n"
+        "calculated height: %i,\n"
+        "Maxrow: %i,\n"
+        "row: %i,\n"
+        "minrow: %i\n\n\n",
+        width,
+        maxcol - mincol + 1,
+        maxcol,
+        mincol,
+        height,
+        maxrow - minrow + 1,
+        maxrow,
+        row,
+        minrow);*/
+
     // tdata_t is TIFFalese for `typedef void* tdata_t`
-    if(TIFFWriteScanline(tif, (tdata_t) (image_buf + imgbuf_rowcol_to_index(row, mincol)), row, 0) != 1)
+    // IMPORTANT: TIFF 'row' seems to start at 0 instead of our 1, thus we subtract 1
+    if(TIFFWriteScanline(tif, (tdata_t) (image_buf + imgbuf_rowcol_to_index(row, mincol)), row - 1, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
       exit(EXIT_FAILURE);
       // TODO print TIFF error message
     }
   }
+  //printf("Done looping!\n");
 
   // Write GeoTIFF keys..
   // TODO GeoTIFF keys

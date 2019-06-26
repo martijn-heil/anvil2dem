@@ -12,3 +12,4 @@ testproject
 .vscode
 build
 compile_commands.json
+vgcore*
