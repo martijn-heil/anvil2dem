@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 #include <inttypes.h>
 
 #include <arpa/inet.h>
@@ -40,6 +41,23 @@
 #define ntoh16(x) ntohs(x)
 #define ntoh32(x) ntohl(x)
 #define ntoh64(x) ntohll(x)
+
+#ifdef __GNUC__
+  #define attr(x) __attribute__((x))
+#else
+  #define attr(x)
+#endif
+
+// See https://stackoverflow.com/questions/24059421
+#define TIFFTAG_GDAL_NODATA 42113
+static const TIFFFieldInfo tiff_field_info[] = {
+  { TIFFTAG_GDAL_NODATA, -1, -1, TIFF_ASCII, FIELD_CUSTOM, 0, 1, "GDAL_NODATA" }
+};
+
+static void register_custom_tiff_tags(TIFF *tif) {
+  TIFFMergeFieldInfo(tif, tiff_field_info, sizeof(tiff_field_info) / sizeof(tiff_field_info[0]));
+}
+
 
 struct chunkpos {
   int32_t x;
@@ -139,6 +157,55 @@ static bool is_ground(uint8_t block_id)
   return block_id != 0; // TODOs
 }
 
+static void strupper(char *out, const char *in) {
+  size_t i = 0;
+  while(*in != '\0') {
+    out[i] = toupper(*in);
+    i++;
+    in++;
+  }
+}
+
+static bool streq(const char *str1, const char *str2) {
+  return strcmp(str1, str2) == 0;
+}
+
+static bool string_starts_with(const char *subject, const char *prefix) {
+  return strncmp(subject, prefix, strlen(prefix));
+}
+
+// returns -1 if none matched
+static int compression_from_string(const char *str) {
+  char newstr[strlen(str) + 1];
+  strupper(newstr, str);
+
+  if     (streq(str, "NONE"))           return COMPRESSION_NONE;
+  else if(streq(str, "CCITTRLE"))       return COMPRESSION_CCITTRLE;
+  else if(streq(str, "CCITTFAX3"))      return COMPRESSION_CCITTFAX3;
+  else if(streq(str, "CCITTFAX4"))      return COMPRESSION_CCITTFAX4;
+  else if(streq(str, "LZW"))            return COMPRESSION_LZW;
+  else if(streq(str, "OJPEG"))          return COMPRESSION_OJPEG;
+  else if(streq(str, "JPEG"))           return COMPRESSION_JPEG;
+  else if(streq(str, "NEXT"))           return COMPRESSION_NEXT;
+  else if(streq(str, "CCITTRLEW"))      return COMPRESSION_CCITTRLEW;
+  else if(streq(str, "PACKBITS"))       return COMPRESSION_PACKBITS;
+  else if(streq(str, "THUNDERSCAN"))    return COMPRESSION_THUNDERSCAN;
+  else if(streq(str, "IT8CTPAD"))       return COMPRESSION_IT8CTPAD;
+  else if(streq(str, "IT8LW"))          return COMPRESSION_IT8LW;
+  else if(streq(str, "IT8MP"))          return COMPRESSION_IT8MP;
+  else if(streq(str, "IT8BL"))          return COMPRESSION_IT8BL;
+  else if(streq(str, "PIXARFILM"))      return COMPRESSION_PIXARFILM;
+  else if(streq(str, "PIXARLOG"))       return COMPRESSION_PIXARLOG;
+  else if(streq(str, "DEFLATE"))        return COMPRESSION_DEFLATE;
+  else if(streq(str, "ADOBE_DEFLATE"))  return COMPRESSION_ADOBE_DEFLATE;
+  else if(streq(str, "DCS"))            return COMPRESSION_DCS;
+  else if(streq(str, "JBIG"))           return COMPRESSION_JBIG;
+  else if(streq(str, "SGILOG"))         return COMPRESSION_SGILOG;
+  else if(streq(str, "SGILOG24"))       return COMPRESSION_SGILOG24;
+  else if(streq(str, "JP2000"))         return COMPRESSION_JP2000;
+  else return -1;
+}
+
 
 #define BUF_SIZE 52428800ULL
 static uint8_t buf[BUF_SIZE];
@@ -228,7 +295,7 @@ void print_usage(const char *prog_str) {
     "PIXARLOG, "
     "DEFLATE, "
     "ADOBE_DEFLATE, "
-    "DSC, "
+    "DCS, "
     "JBIG, "
     "SGILOG, "
     "SGILOG24, "
@@ -241,6 +308,7 @@ void print_version(void) {
   printf("v1.0.0-SNAPSHOT\n");
 }
 
+// Obviously, we assume that argc is never less than 0
 int main(int argc, char *argv[])
 {
   if(argc == 1 || (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)))
@@ -255,17 +323,38 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
   }
 
+  const char *opts[argc - 1];
+  const char *files[argc - 1];
+  size_t files_i = 0;
+  size_t opts_i = 0;
+  for(int i = 1; i < argc; i++) {
+    if(string_starts_with(argv[i], "-"))
+      opts[opts_i++] = argv[i];
+    else
+      files[files_i++] = argv[i];
+  }
+  size_t filecount = files_i;
+  size_t optscount = opts_i;
+
+  // Print requested information and continue
+  for(size_t i = 0; i < optscount; i++) {
+    if(streq(opts[i], "--version") || streq(opts[i], "-v"))
+      print_version();
+    else if(streq(opts[i], "--help") || streq(opts[i], "-h"))
+      print_usage(argv[0]);
+  }
+
   // One byte for every block column in a region, 512x512
-  image_buf = calloc((argc - 1) * (512*512), 1);
+  image_buf = calloc(filecount * (512*512), 1);
   if(image_buf == NULL)
   {
     fprintf(stderr, "Could not allocate memory. (%s)", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  for(int i = 1; i < argc; i++)
+  for(size_t i = 0; i < filecount; i++)
   {
-    FILE *fp = fopen(argv[i], "rb");
+    FILE *fp = fopen(files[i], "rb");
     if(fp == NULL)
     {
       fprintf(stderr, "Could not open file '%s'. (%s)", argv[i], strerror(errno));
@@ -282,6 +371,7 @@ int main(int argc, char *argv[])
     // TODO print proper error message
     exit(EXIT_FAILURE);
   }
+  register_custom_tiff_tags(tif);
   GTIF *gtif = GTIFNew(tif);
   if(gtif == NULL)
   {
@@ -308,9 +398,10 @@ int main(int argc, char *argv[])
   TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
   TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
 
-  // TODO write other tags
+  // The number must be an ASCII string.
+  TIFFSetField(tif, TIFFTAG_GDAL_NODATA, "0");
 
-
+  // NOTE: More tags are set after filling in the data below.
 
   // Write all rows to TIFF.
   // NOTE: uint32 is a typedef from libtiff.
@@ -352,6 +443,12 @@ int main(int argc, char *argv[])
 
   // Write GeoTIFF keys..
   // TODO GeoTIFF keys
+  // TODO possibility for integer overflows?
+  double tiepoints[6] = {0, 0, 0, (double) origin_cartesian_x, (double) origin_cartesian_y, 0.0};
+  double pixscale[3] = {1, 1, 1};
+  TIFFSetField(tif, TIFFTAG_GEOTIEPOINTS, 6, tiepoints);
+  TIFFSetField(tif, TIFFTAG_GEOPIXELSCALE, 3, pixscale);
+
   GTIFWriteKeys(gtif);
   GTIFFree(gtif);
   TIFFClose(tif);
@@ -443,7 +540,8 @@ static void handle_chunk(nbt_node *chunk)
   last_section_y = -1;
 }
 
-static bool handle_section(nbt_node *section, void *aux)
+
+static bool handle_section(nbt_node *section, attr(unused) void *aux)
 {
   if((section->name != NULL &&
       strcmp(section->name, "Sections") == 0) ||
@@ -500,3 +598,4 @@ static bool handle_section(nbt_node *section, void *aux)
   }
   return true;
 }
+
