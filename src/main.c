@@ -43,9 +43,9 @@
 #define ntoh64(x) ntohll(x)
 
 #ifdef __GNUC__
-  #define attr(x) __attribute__((x))
+  #define unused_ __attribute((unused))
 #else
-  #define attr(x)
+  #define unused_
 #endif
 
 // See https://stackoverflow.com/questions/24059421
@@ -541,7 +541,7 @@ static void handle_chunk(nbt_node *chunk)
 }
 
 
-static bool handle_section(nbt_node *section, attr(unused) void *aux)
+static bool handle_section(nbt_node *section, unused_ void *aux)
 {
   if((section->name != NULL &&
       strcmp(section->name, "Sections") == 0) ||
