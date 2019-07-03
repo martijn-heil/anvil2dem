@@ -49,10 +49,13 @@
 #endif
 
 // See https://stackoverflow.com/questions/24059421
+// And see https://www.asmail.be/msg0054699392.html
+// This is horribly documented
 #define TIFFTAG_GDAL_NODATA 42113
 static const TIFFFieldInfo tiff_field_info[] = {
-  { TIFFTAG_GDAL_NODATA, -1, -1, TIFF_ASCII, FIELD_CUSTOM, 0, 1, "GDAL_NODATA" }
+  { TIFFTAG_GDAL_NODATA, 1, 1, TIFF_ASCII, FIELD_CUSTOM, true, false, "GDAL_NODATA" }
 };
+
 
 static void register_custom_tiff_tags(TIFF *tif) {
   TIFFMergeFieldInfo(tif, tiff_field_info, sizeof(tiff_field_info) / sizeof(tiff_field_info[0]));
@@ -119,12 +122,11 @@ static uint8_t current_chunk_heightmap[256];
  * unless explicitly specified otherwise.
  *
  * Row and column are always relative to their container.
- *
  */
 
 
 /*
- * The image buffer gets allocated with ((argc-1) * 512*512) bytes (in main), that is to say,
+ * The image buffer gets allocated with (filecount * 512*512) bytes (in main), that is to say,
  * it has one byte of space for each block in all regions that are submitted to the program to be
  * processed. Upon allocation, the image buffer gets initialized with all-zero values.
  *
@@ -133,11 +135,13 @@ static uint8_t current_chunk_heightmap[256];
  *
  * Chunks that have not been generated are skipped, so as a result, it could occur that the buffer's geographical bounds
  * are larger than the geographical bounds of actually-inserted height data. When writing to the GeoTIFF only all bytes
- * within the geographical bounds of the actually-inserted height data is written to the GeoTIFF. To achieve this,
+ * within the geographical bounds of the actually-inserted height data are written to the GeoTIFF. To achieve this,
  * a max and min for the cartesian x and y of actually-inserted height data is kept track of in the variables below.
  * These max and min are incremented on a by-chunk basis, not on individual block columns. If a chunk gets parsed that is
  * currently outside the geographical bounds kept track of by these variables, they are incremented so that the chunk has
  * expanded them.
+ *
+ * 0 is treated as nodata
  */
 static uint8_t *image_buf; // Gets allocated in main
 static long long origin_cartesian_x, origin_cartesian_y; // Origin is top-left
@@ -171,7 +175,7 @@ static bool streq(const char *str1, const char *str2) {
 }
 
 static bool string_starts_with(const char *subject, const char *prefix) {
-  return strncmp(subject, prefix, strlen(prefix));
+  return strncmp(subject, prefix, strlen(prefix)) == 0;
 }
 
 // returns -1 if none matched
@@ -343,6 +347,7 @@ int main(int argc, char *argv[])
     else if(streq(opts[i], "--help") || streq(opts[i], "-h"))
       print_usage(argv[0]);
   }
+  if(filecount == 0) exit(EXIT_SUCCESS);
 
   // One byte for every block column in a region, 512x512
   image_buf = calloc(filecount * (512*512), 1);
@@ -364,14 +369,13 @@ int main(int argc, char *argv[])
     fclose(fp);
   }
 
-  TIFF *tif = TIFFOpen("out.tif", "w");
+  TIFF *tif = XTIFFOpen("out.tif", "w");
   if(tif == NULL)
   {
     fprintf(stderr, "Could not open out.tif for writing.");
     // TODO print proper error message
     exit(EXIT_FAILURE);
   }
-  register_custom_tiff_tags(tif);
   GTIF *gtif = GTIFNew(tif);
   if(gtif == NULL)
   {
@@ -398,8 +402,7 @@ int main(int argc, char *argv[])
   TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
   TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
 
-  // The number must be an ASCII string.
-  TIFFSetField(tif, TIFFTAG_GDAL_NODATA, "0");
+
 
   // NOTE: More tags are set after filling in the data below.
 
@@ -451,10 +454,12 @@ int main(int argc, char *argv[])
 
   GTIFWriteKeys(gtif);
   GTIFFree(gtif);
-  TIFFClose(tif);
 
+  register_custom_tiff_tags(tif);
+  TIFFSetField(tif, TIFFTAG_GDAL_NODATA, "0"); // The number must be an ASCII string.
 
-
+  XTIFFClose(tif);
+  free(image_buf);
   return EXIT_SUCCESS;
 }
 
