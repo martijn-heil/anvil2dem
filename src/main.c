@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include <arpa/inet.h>
 
@@ -144,13 +145,15 @@ static uint8_t current_chunk_heightmap[256];
  * 0 is treated as nodata
  */
 static uint8_t *image_buf; // Gets allocated in main
-static long long origin_cartesian_x, origin_cartesian_y; // Origin is top-left
+
+// The origin is the top-left cartesian coordinate of the region
+static long long origin_cartesian_x, origin_cartesian_y;
 
 // These are continuously updated in handle_chunk()
-static long long max_cartesian_x = 0;
-static long long min_cartesian_x = 0;
-static long long max_cartesian_y = 0;
-static long long min_cartesian_y = 0;
+static long long max_cartesian_x = LLONG_MIN;
+static long long min_cartesian_x = LLONG_MAX;
+static long long max_cartesian_y = LLONG_MIN;
+static long long min_cartesian_y = LLONG_MAX;
 
 /*
  * Whether a block type should be ignored or not when calculating block column height
@@ -383,8 +386,14 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
+  // Integer rounding is on purpose
+  origin_cartesian_x = min_cartesian_x / 16 / 32 * 32 * 16;
+  origin_cartesian_y = max_cartesian_y / 16 / 32 * 32 * 16;
 
-  // TODO check validity
+  //printf("X min: %lli, max: %lli\n", min_cartesian_x, max_cartesian_x);
+  //printf("Y min: %lli, max: %lli\n", min_cartesian_y, max_cartesian_y);
+  //printf("Origin; x: %lli, y: %lli", origin_cartesian_x, origin_cartesian_y);
+
   // These all start at 1, not 0
   size_t minrow = origin_cartesian_y - max_cartesian_y + 1;
   size_t maxrow = origin_cartesian_y - min_cartesian_y + 1;
@@ -432,10 +441,11 @@ int main(int argc, char *argv[])
         maxrow,
         row,
         minrow);*/
+    uint32 tiffrow = row - minrow;
 
     // tdata_t is TIFFalese for `typedef void* tdata_t`
     // IMPORTANT: TIFF 'row' seems to start at 0 instead of our 1, thus we subtract 1
-    if(TIFFWriteScanline(tif, (tdata_t) (image_buf + imgbuf_rowcol_to_index(row, mincol)), row - 1, 0) != 1)
+    if(TIFFWriteScanline(tif, (tdata_t) (image_buf + imgbuf_rowcol_to_index(row, mincol)), tiffrow, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
       exit(EXIT_FAILURE);
@@ -447,7 +457,8 @@ int main(int argc, char *argv[])
   // Write GeoTIFF keys..
   // TODO GeoTIFF keys
   // TODO possibility for integer overflows?
-  double tiepoints[6] = {0, 0, 0, (double) origin_cartesian_x, (double) origin_cartesian_y, 0.0};
+  // TODO origin is wrong
+  double tiepoints[6] = {0, 0, 0, (double) min_cartesian_x, (double) max_cartesian_y, 0.0};
   double pixscale[3] = {1, 1, 1};
   TIFFSetField(tif, TIFFTAG_GEOTIEPOINTS, 6, tiepoints);
   TIFFSetField(tif, TIFFTAG_GEOPIXELSCALE, 3, pixscale);
@@ -459,7 +470,7 @@ int main(int argc, char *argv[])
   TIFFSetField(tif, TIFFTAG_GDAL_NODATA, "0"); // The number must be an ASCII string.
 
   XTIFFClose(tif);
-  free(image_buf);
+  free(image_buf); // TODO use atexit() instead to free up resources
   return EXIT_SUCCESS;
 }
 
