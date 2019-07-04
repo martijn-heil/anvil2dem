@@ -64,6 +64,7 @@ static void output_point(long long cartesian_x, long long cartesian_y, uint8_t h
   if(index >= image_buf_size) // Guard against buffer overflow
   {
     // TODO less cryptic error message
+    // TODO when the regions are non-sequential, this condition can occur as well
     fprintf(stderr, "Calculated index exceeds image buffer size.\n");
     exit(EXIT_FAILURE);
   }
@@ -77,8 +78,33 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     long long *min_cartesian_y)
 {
 
-  image_buf_size = n*512*512;
-  image_buf = calloc(512*512, n);
+
+  long long max_region_x = LLONG_MIN;
+  long long min_region_x = LLONG_MAX;
+  long long max_region_z = LLONG_MIN;
+  long long min_region_z = LLONG_MAX;
+  for(size_t i = 0; i < n; i++)
+  {
+    const char *path = region_file_paths[i];
+    long long tmp_region_x;
+    long long tmp_region_z;
+
+    int result = sscanf(path, "r.%lli.%lli.mca", &tmp_region_x, &tmp_region_z);
+    if(result == EOF || result < 2)
+    {
+      fprintf(stderr, "Failed to parse region file name to obtain region coordinates.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    if(tmp_region_x > max_region_x) max_region_x = tmp_region_x;
+    if(tmp_region_x < min_region_x) min_region_x = tmp_region_x;
+    if(tmp_region_z > max_region_z) max_region_z = tmp_region_z;
+    if(tmp_region_z < min_region_z) min_region_z = tmp_region_z;
+  }
+  unsigned long long width = max_region_x - min_region_x + 1;
+  unsigned long long height = max_region_z - min_region_z + 1;
+  image_buf_size = width * height * 512*512;
+  image_buf = calloc(image_buf_size, 1);
   if(image_buf == NULL)
   {
     fprintf(stderr, "Could not allocate memory. (%s)", strerror(errno));
@@ -89,8 +115,7 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
   {
     const char *path = region_file_paths[i];
 
-    int result = sscanf(path, "r.%lli.%lli.mca",
-        &region_x, &region_z);
+    int result = sscanf(path, "r.%lli.%lli.mca", &region_x, &region_z);
     if(result == EOF || result < 2)
     {
       fprintf(stderr, "Failed to parse region file name to obtain region coordinates.\n");
