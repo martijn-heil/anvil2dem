@@ -48,6 +48,7 @@ static uint8_t buf[BUF_SIZE];
  * 0 is treated as nodata
  */
 static uint8_t *image_buf;
+static size_t image_buf_size;
 
 long long region_x;
 long long region_z;
@@ -59,7 +60,14 @@ static void output_point(long long cartesian_x, long long cartesian_y, uint8_t h
 
   long long row = cartesian_x - origin_cartesian_x + 1;
   long long column = origin_cartesian_y - cartesian_y + 1;
-  image_buf[rowcol_to_index(row, column)] = height;
+  size_t index = rowcol_to_index(row, column);
+  if(index >= image_buf_size) // Guard against buffer overflow
+  {
+    // TODO less cryptic error message
+    fprintf(stderr, "Calculated index exceeds image buffer size.\n");
+    exit(EXIT_FAILURE);
+  }
+  image_buf[index] = height;
 }
 
 uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t is_ground_func,
@@ -69,6 +77,7 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     long long *min_cartesian_y)
 {
 
+  image_buf_size = n*512*512;
   image_buf = calloc(512*512, n);
   if(image_buf == NULL)
   {
