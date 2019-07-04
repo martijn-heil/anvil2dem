@@ -49,7 +49,7 @@ void maketif(
   TIFF *tif = XTIFFOpen(filepath, "w");
   if(tif == NULL)
   {
-    fprintf(stderr, "Could not open out.tif for writing.");
+    fprintf(stderr, "Could not open %s for writing.", filepath);
     // TODO print proper error message
     exit(EXIT_FAILURE);
   }
