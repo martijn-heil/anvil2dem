@@ -1,8 +1,34 @@
+/*
+  nin-anvil - Generate a DEM from .mca files.
+  Copyright (C) 2017-2019  Martijn Heil
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <errno.h>
+#include <inttypes.h>
+
+#include <arpa/inet.h>
 
 #include <nbt/nbt.h>
+
+#include "parseworld.h"
+#include "utils.h"
+#include "parseregion.h"
 
 
 #define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
@@ -17,20 +43,33 @@
 #define ntoh64(x) ntohll(x)
 
 
-static void handle_chunk(nbt_node *chunk);
-static bool handle_section(nbt_node *section, void *aux);
+struct chunkpos {
+  int32_t x;
+  int32_t z;
+};
 
-typedef (*output_point_func_t)(long long cartesian_x, long long cartesian_y, uint8_t height);
+
+static bool handle_section(nbt_node *section, void *aux);
+static void handle_chunk(nbt_node *chunk,
+    long long *max_cartesian_x,
+    long long *min_cartesian_x,
+    long long *max_cartesian_y,
+    long long *min_cartesian_y,
+    output_point_func_t output_point);
+
+static is_ground_func_t is_ground_func;
 
 // buf size should be at least 4096.
 // 'size' is the amount of available bytes in buf, thus it should be at least 4096.
-static void parse_region(const void *buf, const size_t size,
+void parse_region(const uint8_t *buf, const size_t size,
     long long *out_max_cartesian_x,
     long long *out_min_cartesian_x,
     long long *out_max_cartesian_y,
     long long *out_min_cartesian_y,
-    output_point_func_t output_point_func)
+    output_point_func_t output_point_func,
+    is_ground_func_t loc_is_ground_func)
 {
+  is_ground_func = loc_is_ground_func;
   for(size_t i = 0; i < 4096; i += 4)
   {
     uint32_t offset = 0;
@@ -50,7 +89,7 @@ static void parse_region(const void *buf, const size_t size,
       fprintf(stderr, "Corrupt file.\n");
       exit(EXIT_FAILURE);
     }
-    uint8_t *chunk_pointer = buf + offset;
+    const uint8_t *chunk_pointer = buf + offset;
     uint32_t chunk_length = 0;
     memcpy(&chunk_length, chunk_pointer, 4);
     chunk_length = ntoh32(chunk_length);
@@ -68,13 +107,13 @@ static void parse_region(const void *buf, const size_t size,
       fprintf(stderr, "Could not parse chunk NBT. (%s)\n", nbt_error_to_string(errno));
       exit(EXIT_FAILURE);
     }
-    handle_chunk(chunk);
-    nbt_free(chunk,
-        out_max_cartesian_x,
-        out_min_cartesian_x,
-        out_max_cartesian_y,
-        out_min_cartesian_y,
-        output_point_func);
+    handle_chunk(chunk,
+      out_max_cartesian_x,
+      out_min_cartesian_x,
+      out_max_cartesian_y,
+      out_min_cartesian_y,
+      output_point_func);
+    nbt_free(chunk);
   }
 }
 
@@ -211,7 +250,7 @@ static bool handle_section(nbt_node *section, unused_ void *aux)
     {
       uint8_t current_block_id = (uint8_t) blocks->payload.tag_byte_array.data[y * 255 + j];
 
-      if(is_ground(current_block_id) && current_chunk_heightmap[j] < current_y)
+      if(is_ground_func(current_block_id) && current_chunk_heightmap[j] < current_y)
       {
         current_chunk_heightmap[j] = current_y;
       }
