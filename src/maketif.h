@@ -23,9 +23,12 @@
 void maketif(
     const char *filepath,
     const void *buf,
+    const long long buf_origin_cartesian_x,
+    const long long buf_origin_cartesian_y,
+    const unsigned long long buf_width,
+    const unsigned long long buf_height,
     const long long max_cartesian_x,
     const long long min_cartesian_x,
     const long long max_cartesian_y,
     const long long min_cartesian_y);
-
 #endif

@@ -41,6 +41,10 @@ static void register_custom_tiff_tags(TIFF *tif) {
 void maketif(
     const char *filepath,
     const void *buf,
+    const long long buf_origin_cartesian_x,
+    const long long buf_origin_cartesian_y,
+    const unsigned long long buf_width,
+    const unsigned long long buf_height,
     const long long max_cartesian_x,
     const long long min_cartesian_x,
     const long long max_cartesian_y,
@@ -60,16 +64,12 @@ void maketif(
     exit(EXIT_FAILURE);
   }
 
-  // Integer rounding is on purpose
-  const long long origin_cartesian_x = min_cartesian_x / 16 / 32 * 32 * 16;
-  const long long origin_cartesian_y = max_cartesian_y / 16 / 32 * 32 * 16;
-
   // These all start at 1, not 0
   // Note that TIFF rows start at 0 instead of 1
-  const size_t minrow = origin_cartesian_y - max_cartesian_y + 1;
-  const size_t maxrow = origin_cartesian_y - min_cartesian_y + 1;
-  const size_t maxcol = max_cartesian_x - origin_cartesian_x + 1;
-  const size_t mincol = min_cartesian_x - origin_cartesian_x + 1;
+  const size_t minrow = buf_origin_cartesian_y - max_cartesian_y + 1;
+  const size_t maxrow = buf_origin_cartesian_y - min_cartesian_y + 1;
+  const size_t maxcol = max_cartesian_x - buf_origin_cartesian_x + 1;
+  const size_t mincol = min_cartesian_x - buf_origin_cartesian_x + 1;
 
   const size_t width = maxcol - mincol + 1;
   const size_t height = maxrow - minrow + 1;
@@ -98,7 +98,7 @@ void maketif(
 
     // tdata_t is TIFFalese for `typedef void* tdata_t`
     // IMPORTANT: TIFF 'row' seems to start at 0 instead of our 1, thus we subtract 1
-    if(TIFFWriteScanline(tif, (tdata_t) (buf + rowcol_to_index(row, mincol)), tiffrow, 0) != 1)
+    if(TIFFWriteScanline(tif, (tdata_t) (buf + rowcol_to_index(row, mincol, buf_width)), tiffrow, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
       exit(EXIT_FAILURE);

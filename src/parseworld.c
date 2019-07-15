@@ -49,6 +49,8 @@ static uint8_t buf[BUF_SIZE];
  */
 static uint8_t *image_buf;
 static size_t image_buf_size;
+static unsigned long long image_buf_width; // in blocks
+static unsigned long long image_buf_height; // in blocks
 
 long long region_x;
 long long region_z;
@@ -60,7 +62,7 @@ static void output_point(long long cartesian_x, long long cartesian_y, uint8_t h
 
   long long row = cartesian_x - origin_cartesian_x + 1;
   long long column = origin_cartesian_y - cartesian_y + 1;
-  size_t index = rowcol_to_index(row, column);
+  size_t index = rowcol_to_index(row, column, image_buf_width);
   if(index >= image_buf_size) // Guard against buffer overflow
   {
     // TODO less cryptic error message
@@ -72,13 +74,15 @@ static void output_point(long long cartesian_x, long long cartesian_y, uint8_t h
 }
 
 uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t is_ground_func,
+    long long *out_image_buf_origin_cartesian_x,
+    long long *out_image_buf_origin_cartesian_y,
+    unsigned long long *out_image_buf_width,
+    unsigned long long *out_image_buf_height,
     long long *max_cartesian_x,
     long long *min_cartesian_x,
     long long *max_cartesian_y,
     long long *min_cartesian_y)
 {
-
-
   long long max_region_x = LLONG_MIN;
   long long min_region_x = LLONG_MAX;
   long long max_region_z = LLONG_MIN;
@@ -101,8 +105,18 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     if(tmp_region_z > max_region_z) max_region_z = tmp_region_z;
     if(tmp_region_z < min_region_z) min_region_z = tmp_region_z;
   }
+  // Integer rounding is on purpose
+  *out_image_buf_origin_cartesian_x = max_region_x * 32 * 16;
+  *out_image_buf_origin_cartesian_y = 0 - (max_region_z * 32 * 16);
+
   unsigned long long width = max_region_x - min_region_x + 1;
   unsigned long long height = max_region_z - min_region_z + 1;
+  image_buf_width = width * 32 * 16;
+  image_buf_height = height * 32 * 16;
+
+  *out_image_buf_width = image_buf_width;
+  *out_image_buf_height = image_buf_height;
+
   image_buf_size = width * height * 512*512;
   image_buf = calloc(image_buf_size, 1);
   if(image_buf == NULL)

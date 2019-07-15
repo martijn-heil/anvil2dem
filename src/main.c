@@ -208,14 +208,27 @@ int main(int argc, char *argv[])
   long long max_cartesian_y = LLONG_MIN;
   long long min_cartesian_y = LLONG_MAX;
 
+  long long imgbuf_origin_cartesian_x;
+  long long imgbuf_origin_cartesian_y;
+  unsigned long long imgbuf_width;
+  unsigned long long imgbuf_height;
+
   // One byte for every block column in a region, 512x512
   uint8_t *imgbuf = parse_world(files, filecount, &is_ground,
+      &imgbuf_origin_cartesian_x,
+      &imgbuf_origin_cartesian_y,
+      &imgbuf_width,
+      &imgbuf_height,
       &max_cartesian_x,
       &min_cartesian_x,
       &max_cartesian_y,
       &min_cartesian_y);
 
   maketif("out.tif", imgbuf,
+      imgbuf_origin_cartesian_x,
+      imgbuf_origin_cartesian_y,
+      imgbuf_width,
+      imgbuf_height,
       max_cartesian_x,
       min_cartesian_x,
       max_cartesian_y,

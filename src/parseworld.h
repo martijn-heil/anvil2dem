@@ -26,6 +26,10 @@
 typedef bool (*is_ground_func_t)(uint8_t block_id);
 
 uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t is_ground_func,
+    long long *out_image_buf_origin_cartesian_x,
+    long long *out_image_buf_origin_cartesian_y,
+    unsigned long long *out_image_buf_width,
+    unsigned long long *out_image_buf_height,
     long long *out_max_cartesian_x,
     long long *out_min_cartesian_x,
     long long *out_max_cartesian_y,
