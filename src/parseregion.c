@@ -248,7 +248,7 @@ static bool handle_section(nbt_node *section, unused_ void *aux)
     uint_fast8_t current_y = section_y * 16 + y;
     for(uint_fast16_t j = 0; j < 256; j++)
     {
-      uint8_t current_block_id = (uint8_t) blocks->payload.tag_byte_array.data[y * 255 + j];
+      uint8_t current_block_id = (uint8_t) blocks->payload.tag_byte_array.data[y * 256 + j];
 
       if(is_ground_func(current_block_id) && current_chunk_heightmap[j] < current_y)
       {
