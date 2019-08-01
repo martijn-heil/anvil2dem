@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <limits.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "utils.h"
 #include "parseregion.h"
@@ -83,6 +84,20 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     long long *max_cartesian_y,
     long long *min_cartesian_y)
 {
+  assert(max_cartesian_x != NULL);
+  assert(min_cartesian_x != NULL);
+  assert(max_cartesian_y != NULL);
+  assert(min_cartesian_y != NULL);
+  assert(out_image_buf_width != NULL);
+  assert(out_image_buf_height != NULL);
+  assert(out_image_buf_origin_cartesian_x != NULL);
+  assert(out_image_buf_origin_cartesian_y != NULL);
+  assert(is_ground_func != NULL);
+  assert(n != 0);
+  assert(region_file_paths != NULL);
+
+  printf("in parse_world(n: %zu)\n");
+
   long long max_region_x = LLONG_MIN;
   long long min_region_x = LLONG_MAX;
   long long max_region_z = LLONG_MIN;
@@ -106,8 +121,8 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     if(tmp_region_z < min_region_z) min_region_z = tmp_region_z;
   }
   // Integer rounding is on purpose
-  *out_image_buf_origin_cartesian_x = max_region_x * 32 * 16;
-  *out_image_buf_origin_cartesian_y = 0 - (max_region_z * 32 * 16);
+  *out_image_buf_origin_cartesian_x = min_region_x * 32 * 16;
+  *out_image_buf_origin_cartesian_y = 0 - (min_region_z * 32 * 16);
 
   unsigned long long width = max_region_x - min_region_x + 1;
   unsigned long long height = max_region_z - min_region_z + 1;

@@ -17,6 +17,7 @@
 */
 
 #include <stdlib.h>
+#include <assert.h>
 #include <stddef.h> // for size_t
 #include <xtiffio.h>
 #include <geotiffio.h>
@@ -50,6 +51,34 @@ void maketif(
     const long long max_cartesian_y,
     const long long min_cartesian_y)
 {
+  assert(filepath != NULL);
+  assert(buf != NULL);
+  assert(max_cartesian_x >= min_cartesian_x);
+  assert(max_cartesian_y >= min_cartesian_y);
+  assert(buf_width > 0);
+  assert(buf_height > 0);
+  assert(buf_origin_cartesian_x <= min_cartesian_x);
+  assert(buf_origin_cartesian_y >= max_cartesian_y);
+  printf("in maketif(filepath: %s, "
+    "buf_origin_cartesian_x: %lli, "
+    "buf_origin_cartesian_y: %lli, "
+    "buf_width: %llu, "
+    "buf_height: %llu, "
+    "max_cartesian_x: %lli, "
+    "min_cartesian_x: %lli, "
+    "max_cartesian_y: %lli, "
+    "min_cartesian_y, %lli)\n",
+    filepath,
+    buf_origin_cartesian_x,
+    buf_origin_cartesian_y,
+    buf_width,
+    buf_height,
+    max_cartesian_x,
+    min_cartesian_x,
+    max_cartesian_y,
+    min_cartesian_y
+  );
+
   TIFF *tif = XTIFFOpen(filepath, "w");
   if(tif == NULL)
   {
