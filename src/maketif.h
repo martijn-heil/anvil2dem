@@ -23,6 +23,7 @@
 void maketif(
     const char *filepath,
     const void *buf,
+    const int compression,
     const long long buf_origin_cartesian_x,
     const long long buf_origin_cartesian_y,
     const unsigned long long buf_width,
