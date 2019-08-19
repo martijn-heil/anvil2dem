@@ -42,6 +42,7 @@ static void register_custom_tiff_tags(TIFF *tif) {
 void maketif(
     const char *filepath,
     const void *buf,
+    const int compression,
     const long long buf_origin_cartesian_x,
     const long long buf_origin_cartesian_y,
     const unsigned long long buf_width,
@@ -51,6 +52,7 @@ void maketif(
     const long long max_cartesian_y,
     const long long min_cartesian_y)
 {
+  assert(compression != -1);
   assert(filepath != NULL);
   assert(buf != NULL);
   assert(max_cartesian_x >= min_cartesian_x);
@@ -109,7 +111,7 @@ void maketif(
   TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
   TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8);
   TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-  TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
+  TIFFSetField(tif, TIFFTAG_COMPRESSION, compression);
 
 
 
