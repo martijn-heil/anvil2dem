@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
       compression = compression_from_string(compression_string);
       if(compression == -1) // invalid type of compression specified
       {
-        fprintf(stderr, "Specified invalid type of compression '%s", compression_string);
+        fprintf(stderr, "Specified invalid type of compression '%s'", compression_string);
         exit(EXIT_FAILURE);
       }
     }
