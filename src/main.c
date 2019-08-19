@@ -89,7 +89,8 @@ static bool is_ground(uint8_t block_id)
 }
 
 // returns -1 if none matched
-static int compression_from_string(const char *str) {
+static int compression_from_string(const char *str) 
+{
   char newstr[strlen(str) + 1];
   strupper(newstr, str);
 
@@ -121,7 +122,8 @@ static int compression_from_string(const char *str) {
 }
 
 
-void print_usage(const char *prog_str) {
+void print_usage(const char *prog_str) 
+{
   printf(
     "Usage: %s [options] region_file...\n"
     "Options:\n"
@@ -160,7 +162,8 @@ void print_usage(const char *prog_str) {
   );
 }
 
-void print_version(void) {
+void print_version(void) 
+{
   printf("v1.0.0-SNAPSHOT\n");
 }
 
