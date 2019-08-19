@@ -183,7 +183,8 @@ int main(int argc, char *argv[])
   const char *files[argc - 1];
   size_t files_i = 0;
   size_t opts_i = 0;
-  for(int i = 1; i < argc; i++) {
+  for(int i = 1; i < argc; i++)
+  {
     if(string_starts_with(argv[i], "-"))
       opts[opts_i++] = argv[i];
     else
@@ -192,12 +193,23 @@ int main(int argc, char *argv[])
   size_t filecount = files_i;
   size_t optscount = opts_i;
 
+  int compression = COMPRESSION_DEFLATE;
   // Print requested information and continue
   for(size_t i = 0; i < optscount; i++) {
     if(streq(opts[i], "--version") || streq(opts[i], "-v"))
       print_version();
     else if(streq(opts[i], "--help") || streq(opts[i], "-h"))
       print_usage(argv[0]);
+    else if(strlen(opts[i]) > 14 && strncmp(opts[i], "--compression=", 14) == 0) // 14 is the length of "--compression="
+    {
+      const char *compression_string = opts + i + 14;
+      compression = compression_from_string(compression_string);
+      if(compression == -1) // invalid type of compression specified
+      {
+        fprintf(stderr, "Specified invalid type of compression '%s", compression_string);
+        exit(EXIT_FAILURE);
+      }
+    }
   }
   if(filecount == 0) exit(EXIT_SUCCESS);
 
@@ -224,7 +236,7 @@ int main(int argc, char *argv[])
       &max_cartesian_y,
       &min_cartesian_y);
 
-  maketif("out.tif", imgbuf,
+  maketif("out.tif", imgbuf, compression,
       imgbuf_origin_cartesian_x,
       imgbuf_origin_cartesian_y,
       imgbuf_width,
