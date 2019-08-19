@@ -136,7 +136,7 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
   image_buf = calloc(image_buf_size, 1);
   if(image_buf == NULL)
   {
-    fprintf(stderr, "Could not allocate memory. (%s)", strerror(errno));
+    fprintf(stderr, "Could not allocate %zu bytes of memory. (%s)", image_buf_size, strerror(errno));
     exit(EXIT_FAILURE);
   }
 
