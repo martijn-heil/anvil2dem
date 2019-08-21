@@ -23,6 +23,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <libgen.h> // for basename()
+
 #include "utils.h"
 #include "parseregion.h"
 
@@ -143,11 +145,13 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
   for(size_t i = 0; i < n; i++)
   {
     const char *path = region_file_paths[i];
+    const char *filename = basename(path);
 
-    int result = sscanf(path, "r.%lli.%lli.mca", &region_x, &region_z);
+    int result = sscanf(filename, "r.%lli.%lli.mca", &region_x, &region_z);
     if(result == EOF || result < 2)
     {
       fprintf(stderr, "Failed to parse region file name to obtain region coordinates.\n");
+      free(image_buf);
       exit(EXIT_FAILURE);
     }
 
@@ -156,6 +160,7 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     if(fp == NULL)
     {
       fprintf(stderr, "Could not open file '%s'. (%s)", path, strerror(errno));
+      free(image_buf);
       exit(EXIT_FAILURE);
     }
 
@@ -163,12 +168,14 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
     if(size == 0)
     {
       fprintf(stderr, "Could not read from file. (%s)\n", strerror(errno));
+      free(image_buf);
       exit(EXIT_FAILURE);
     }
 
     if(size < 4096)
     {
       fprintf(stderr, "region file is not at least 4096 bytes. This could indicate a corrupt region file.\n");
+      free(image_buf);
       exit(EXIT_FAILURE);
     }
 
