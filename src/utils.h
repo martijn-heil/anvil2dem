@@ -32,7 +32,8 @@
   #define unused_
 #endif
 
-static inline void strupper(char *out, const char *in) {
+static inline void strupper(char *out, const char *in)
+{
   size_t i = 0;
   while(*in != '\0') {
     out[i] = toupper(*in);
@@ -41,11 +42,13 @@ static inline void strupper(char *out, const char *in) {
   }
 }
 
-static inline bool streq(const char *str1, const char *str2) {
+static inline bool streq(const char *str1, const char *str2)
+{
   return strcmp(str1, str2) == 0;
 }
 
-static inline bool string_starts_with(const char *subject, const char *prefix) {
+static inline bool string_starts_with(const char *subject, const char *prefix)
+{
   return strncmp(subject, prefix, strlen(prefix)) == 0;
 }
 
