@@ -145,7 +145,11 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
   for(size_t i = 0; i < n; i++)
   {
     const char *path = region_file_paths[i];
-    const char *filename = basename(path);
+
+    // basename may modify the contents of it's argument 'path', so we need to make a copy.
+    char copy_of_path[strlen(path) + 1];
+    strcpy(copy_of_path, path);
+    const char *filename = basename(copy_of_path);
 
     int result = sscanf(filename, "r.%lli.%lli.mca", &region_x, &region_z);
     if(result == EOF || result < 2)
