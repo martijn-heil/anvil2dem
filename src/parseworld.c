@@ -98,7 +98,7 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
   assert(n != 0);
   assert(region_file_paths != NULL);
 
-  printf("in parse_world(n: %zu)\n");
+  printf("in parse_world(n: %zu)\n", n);
 
   long long max_region_x = LLONG_MIN;
   long long min_region_x = LLONG_MAX;
