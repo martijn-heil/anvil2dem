@@ -28,7 +28,7 @@ void region2dem(uint8_t *outbuf, const uint8_t *inbuf, is_ground_func_t is_groun
     long long *out_cartesian_region_x,
     long long *out_cartesian_region_y);
 
-void regionfile2dem(uint8_t *outbuf, const uint8_t *inbuf, is_ground_func_t is_ground_func,
+void regionfile2dem(uint8_t *outbuf, const char *filepath, is_ground_func_t is_ground_func,
     long long *out_cartesian_region_x,
     long long*out_cartesian_region_y);
 
