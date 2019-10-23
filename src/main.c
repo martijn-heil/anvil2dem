@@ -127,7 +127,7 @@ static int compression_from_string(const char *str)
 void print_usage(const char *prog_str)
 {
   printf(
-    "Usage: %s [options] region_file...\n"
+    "Usage: %s [options] region_file\n"
     "Options:\n"
     "  -h, --help                Show this usage information.\n"
     "  -v, --version             Show version information.\n"
