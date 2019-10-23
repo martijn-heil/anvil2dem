@@ -135,10 +135,26 @@ uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t
   *out_image_buf_height = image_buf_height;
 
   image_buf_size = width * height * 512*512;
+  const char *human_readable_amount = bytes_fancy(image_buf_size);
+  if(human_readable_amount != NULL)
+  {
+    fprintf(stderr, "Allocating %s of memory for world parsing.\n", human_readable_amount);
+  }
+  else
+  {
+    fprintf(stderr, "Allocating %zu bytes of memory for world parsing.\n", image_buf_size);
+  }
   image_buf = calloc(image_buf_size, 1);
   if(image_buf == NULL)
   {
-    fprintf(stderr, "Could not allocate %zu bytes of memory. (%s)", image_buf_size, strerror(errno));
+    if(human_readable_amount != NULL)
+    {
+      fprintf(stderr, "Could not allocate %s of memory for world parsing. (%s)\n", human_readable_amount, strerror(errno));
+    }
+    else
+    {
+      fprintf(stderr, "Could not allocate %zu bytes of memory for world parsing. (%s)\n", image_buf_size, strerror(errno));
+    }
     exit(EXIT_FAILURE);
   }
 
