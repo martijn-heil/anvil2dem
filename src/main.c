@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
       print_usage(argv[0]);
     else if(strlen(opts[i]) > 14 && strncmp(opts[i], "--compression=", 14) == 0) // 14 is the length of "--compression="
     {
-      const char *compression_string = opts + i + 14;
+      const char *compression_string = opts[i] + 14;
       compression = compression_from_string(compression_string);
       if(compression == -1) // invalid type of compression specified
       {
