@@ -26,7 +26,6 @@
 
 #include <nbt/nbt.h>
 
-#include "parseworld.h"
 #include "utils.h"
 #include "parseregion.h"
 
@@ -55,7 +54,8 @@ static void handle_chunk(nbt_node *chunk,
     long long *min_cartesian_x,
     long long *max_cartesian_y,
     long long *min_cartesian_y,
-    output_point_func_t output_point);
+    output_point_func_t output_point,
+    void *output_point_aux);
 
 static is_ground_func_t is_ground_func;
 
@@ -67,6 +67,7 @@ void parse_region(const uint8_t *buf, const size_t size,
     long long *out_max_cartesian_y,
     long long *out_min_cartesian_y,
     output_point_func_t output_point_func,
+    void *output_point_aux,
     is_ground_func_t loc_is_ground_func)
 {
   is_ground_func = loc_is_ground_func;
@@ -112,7 +113,8 @@ void parse_region(const uint8_t *buf, const size_t size,
       out_min_cartesian_x,
       out_max_cartesian_y,
       out_min_cartesian_y,
-      output_point_func);
+      output_point_func,
+      output_point_aux);
     nbt_free(chunk);
   }
 }
@@ -126,7 +128,8 @@ static void handle_chunk(nbt_node *chunk,
     long long *min_cartesian_x,
     long long *max_cartesian_y,
     long long *min_cartesian_y,
-    output_point_func_t output_point)
+    output_point_func_t output_point,
+    void *output_point_aux)
 {
   nbt_node *level = nbt_find_by_name(chunk, "Level");
   if(level == NULL)
@@ -180,7 +183,7 @@ static void handle_chunk(nbt_node *chunk,
   for(size_t i = 0; i < 256; i++)
   {
     // Outputs point at absolute cartesian coordinates, so the Minecraft z is now called y and is inverted
-    output_point(chunkpos.x * 16 + i % 16, 0 - (chunkpos.z * 16 + i / 16), current_chunk_heightmap[i]);
+    output_point(chunkpos.x * 16 + i % 16, 0 - (chunkpos.z * 16 + i / 16), current_chunk_heightmap[i], output_point_aux);
   }
 
   // Update filled-in data bounds

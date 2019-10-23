@@ -22,14 +22,16 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
-#include <limits.h>
 
 #include <xtiffio.h>
 #include <geotiffio.h>
 
 #include "utils.h"
 #include "maketif.h"
-#include "parseworld.h"
+#include "parsingutils.h"
+
+#define REGION_HEIGHT 512
+#define REGION_WIDTH 512
 
 /*
                                             North(-z)
@@ -89,7 +91,7 @@ static bool is_ground(uint8_t block_id)
 }
 
 // returns -1 if none matched
-static int compression_from_string(const char *str) 
+static int compression_from_string(const char *str)
 {
   char newstr[strlen(str) + 1];
   strupper(newstr, str);
@@ -122,7 +124,7 @@ static int compression_from_string(const char *str)
 }
 
 
-void print_usage(const char *prog_str) 
+void print_usage(const char *prog_str)
 {
   printf(
     "Usage: %s [options] region_file...\n"
@@ -162,7 +164,7 @@ void print_usage(const char *prog_str)
   );
 }
 
-void print_version(void) 
+void print_version(void)
 {
   printf("v1.0.0-SNAPSHOT\n");
 }
@@ -217,33 +219,31 @@ int main(int argc, char *argv[])
   if(filecount == 0) exit(EXIT_SUCCESS);
 
 
-  // These will get continuously updated as they are passed to parse_world()
-  long long max_cartesian_x = LLONG_MIN;
-  long long min_cartesian_x = LLONG_MAX;
-  long long max_cartesian_y = LLONG_MIN;
-  long long min_cartesian_y = LLONG_MAX;
+  uint8_t *imgbuf = calloc(4096, 1);
+  if(imgbuf == NULL)
+  {
+    fprintf(stderr, "Could not allocate image buffer. (%s)", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 
-  long long imgbuf_origin_cartesian_x;
-  long long imgbuf_origin_cartesian_y;
-  unsigned long long imgbuf_width;
-  unsigned long long imgbuf_height;
+  long long cartesian_region_x;
+  long long cartesian_region_y;
+  regionfile2dem(imgbuf, files[0], is_ground, &cartesian_region_x, &cartesian_region_y);
 
-  // One byte for every block column in a region, 512x512
-  uint8_t *imgbuf = parse_world(files, filecount, &is_ground,
-      &imgbuf_origin_cartesian_x,
-      &imgbuf_origin_cartesian_y,
-      &imgbuf_width,
-      &imgbuf_height,
-      &max_cartesian_x,
-      &min_cartesian_x,
-      &max_cartesian_y,
-      &min_cartesian_y);
+  long long imgbuf_origin_cartesian_x = cartesian_region_x * 32 * 16;
+  long long imgbuf_origin_cartesian_y = cartesian_region_y * 32 * 16;
+
+  long long min_cartesian_x = imgbuf_origin_cartesian_x;
+  long long min_cartesian_y = imgbuf_origin_cartesian_y;
+
+  long long max_cartesian_x = cartesian_region_x * 32 * 16 + REGION_WIDTH - 1;
+  long long max_cartesian_y = cartesian_region_y * 32 * 16 + REGION_HEIGHT - 1;
 
   maketif("out.tif", imgbuf, compression,
       imgbuf_origin_cartesian_x,
       imgbuf_origin_cartesian_y,
-      imgbuf_width,
-      imgbuf_height,
+      REGION_WIDTH,
+      REGION_HEIGHT,
       max_cartesian_x,
       min_cartesian_x,
       max_cartesian_y,

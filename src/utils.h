@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <ctype.h>
 
 // Assumes that row and column start at 1, not at 0

@@ -16,23 +16,20 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef NIN_ANVIL_PARSEWORLD_H
-#define NIN_ANVIL_PARSEWORLD_H
+#ifndef NIN_ANVIL_PARSINGUTILS_H
+#define NIN_ANVIL_PARSINGUTILS_H
 
-/*
- * Whether a block type should be ignored or not when calculating block column height
- * This is useful for example when you want to exclude leaves and logs (trees) from the resulting DEM.
- */
-typedef bool (*is_ground_func_t)(uint8_t block_id);
+#include <stdint.h>
 
-uint8_t *parse_world(const char *region_file_paths[], size_t n, is_ground_func_t is_ground_func,
-    long long *out_image_buf_origin_cartesian_x,
-    long long *out_image_buf_origin_cartesian_y,
-    unsigned long long *out_image_buf_width,
-    unsigned long long *out_image_buf_height,
-    long long *out_max_cartesian_x,
-    long long *out_min_cartesian_x,
-    long long *out_max_cartesian_y,
-    long long *out_min_cartesian_y);
+#include "parseregion.h" // for is_ground_func_t
+
+
+void region2dem(uint8_t *outbuf, const uint8_t *inbuf, is_ground_func_t is_ground_func,
+    long long *out_cartesian_region_x,
+    long long *out_cartesian_region_y);
+
+void regionfile2dem(uint8_t *outbuf, const uint8_t *inbuf, is_ground_func_t is_ground_func,
+    long long *out_cartesian_region_x,
+    long long*out_cartesian_region_y);
 
 #endif
