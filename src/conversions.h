@@ -16,21 +16,27 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef NIN_ANVIL_PARSINGUTILS_H
-#define NIN_ANVIL_PARSINGUTILS_H
+#ifndef NIN_ANVIL_CONVERSIONS_H
+#define NIN_ANVIL_CONVERSIONS_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include "constants.h"
 
-#include "parseregion.h" // for is_ground_func_t
+struct lli_xy
+{
+  long long x;
+  long long y;
+};
 
+static inline struct lli_xy get_cartesian_region_coords(long long cartesian_x, long long cartesian_y)
+{
+  long long cartesian_region_x = cartesian_x / REGION_WIDTH;
+  if(cartesian_x < 0 && (cartesian_x % REGION_WIDTH) != 0) cartesian_region_x--;
 
-void region2dem(uint8_t *outbuf, const uint8_t *inbuf, size_t size, is_ground_func_t is_ground_func,
-    long long *out_cartesian_region_x,
-    long long *out_cartesian_region_y);
+  long long cartesian_region_y = cartesian_y / REGION_HEIGHT;
+  if(cartesian_y < 0 && (cartesian_y % REGION_HEIGHT) != 0) cartesian_region_y--;
 
-void regionfile2dem(uint8_t *outbuf, const char *filepath, is_ground_func_t is_ground_func,
-    long long *out_cartesian_region_x,
-    long long*out_cartesian_region_y);
+  struct lli_xy ret = { .x = cartesian_region_x, .y = cartesian_region_y };
+  return ret;
+}
 
 #endif

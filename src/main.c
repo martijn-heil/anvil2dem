@@ -29,9 +29,9 @@
 #include "utils.h"
 #include "maketif.h"
 #include "parsingutils.h"
+#include "constants.h"
 
-#define REGION_HEIGHT 512
-#define REGION_WIDTH 512
+
 
 /*
                                             North(-z)
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
   if(filecount == 0) exit(EXIT_SUCCESS);
 
 
-  uint8_t *imgbuf = calloc(4096, 1);
+  uint8_t *imgbuf = calloc(REGION_SIZE, 1);
   if(imgbuf == NULL)
   {
     fprintf(stderr, "Could not allocate image buffer. (%s)", strerror(errno));
@@ -231,15 +231,22 @@ int main(int argc, char *argv[])
   regionfile2dem(imgbuf, files[0], is_ground, &cartesian_region_x, &cartesian_region_y);
 
   long long imgbuf_origin_cartesian_x = cartesian_region_x * 32 * 16;
-  long long imgbuf_origin_cartesian_y = cartesian_region_y * 32 * 16;
+  long long imgbuf_origin_cartesian_y = cartesian_region_y * 32 * 16 + REGION_HEIGHT - 1;
 
   long long min_cartesian_x = imgbuf_origin_cartesian_x;
-  long long min_cartesian_y = imgbuf_origin_cartesian_y;
+  long long min_cartesian_y = imgbuf_origin_cartesian_y - REGION_HEIGHT + 1;
 
   long long max_cartesian_x = cartesian_region_x * 32 * 16 + REGION_WIDTH - 1;
   long long max_cartesian_y = cartesian_region_y * 32 * 16 + REGION_HEIGHT - 1;
 
-  maketif("out.tif", imgbuf, compression,
+  char *output_filename;
+  if(asprintf(&output_filename, "%llix_%lliy.tif", cartesian_region_x, cartesian_region_y) == -1)
+  {
+    fprintf(stderr, "Could not generate output file name.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  maketif(output_filename, imgbuf, compression,
       imgbuf_origin_cartesian_x,
       imgbuf_origin_cartesian_y,
       REGION_WIDTH,
@@ -249,6 +256,7 @@ int main(int argc, char *argv[])
       max_cartesian_y,
       min_cartesian_y);
 
+  free(output_filename);
   free(imgbuf); // TODO use atexit() instead to free up resources
   return EXIT_SUCCESS;
 }

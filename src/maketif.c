@@ -39,6 +39,7 @@ static void register_custom_tiff_tags(TIFF *tif) {
 
 
 // TODO implement error return
+// origin is left-top
 void maketif(
     const char *filepath,
     const void *buf,
@@ -110,6 +111,7 @@ void maketif(
   TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
   TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
   TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8);
+  TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
   TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
   TIFFSetField(tif, TIFFTAG_COMPRESSION, compression);
 

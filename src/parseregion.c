@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include <arpa/inet.h>
 
@@ -70,6 +71,14 @@ void parse_region(const uint8_t *buf, const size_t size,
     void *output_point_aux,
     is_ground_func_t loc_is_ground_func)
 {
+  assert(size >= 4096);
+  assert(out_max_cartesian_x != NULL);
+  assert(out_min_cartesian_x != NULL);
+  assert(out_max_cartesian_y != NULL);
+  assert(out_min_cartesian_y != NULL);
+  assert(output_point_func != NULL);
+  assert(loc_is_ground_func != NULL);
+
   is_ground_func = loc_is_ground_func;
   for(size_t i = 0; i < 4096; i += 4)
   {
