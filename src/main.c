@@ -30,6 +30,7 @@
 #include "maketif.h"
 #include "parsingutils.h"
 #include "constants.h"
+#include "conversions.h"
 
 
 
@@ -74,12 +75,13 @@ West(-x)    +----+----+----+----+----+----+----+----+----+----+----+----+----+--
 /*
  * About variable names:
  *
- * When a coordinate variable is named "cartesian" is is always an absolute coordinate, never relative,
- * unless explicitly specified otherwise.
+ * All coordinates are absolute unless specified otherwise.
  *
  * Row and column are always relative to their container.
  */
 
+static uint8_t forbidden_blocks[] = {0, 18, 161, 17, 162, 8, 9};
+static const size_t forbidden_blocks_size = sizeof(forbidden_blocks);
 
 /*
  * Whether a block type should be ignored or not when calculating block column height
@@ -87,7 +89,11 @@ West(-x)    +----+----+----+----+----+----+----+----+----+----+----+----+----+--
  */
 static bool is_ground(uint8_t block_id)
 {
-  return block_id != 0; // TODOs
+  for (size_t i = 0; i < forbidden_blocks_size; i++)
+  {
+    if(forbidden_blocks[i] == block_id) return false;
+  }
+  return true;
 }
 
 // returns -1 if none matched
@@ -219,42 +225,51 @@ int main(int argc, char *argv[])
   if(filecount == 0) exit(EXIT_SUCCESS);
 
 
-  uint8_t *imgbuf = calloc(REGION_SIZE, 1);
+  const size_t imgbuf_size = REGION_SIZE;
+  uint8_t *imgbuf = calloc(imgbuf_size, 1);
   if(imgbuf == NULL)
   {
     fprintf(stderr, "Could not allocate image buffer. (%s)", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  long long cartesian_region_x;
-  long long cartesian_region_y;
-  regionfile2dem(imgbuf, files[0], is_ground, &cartesian_region_x, &cartesian_region_y);
+  long long region_x;
+  long long region_y;
+  regionfile2dem(imgbuf, files[0], is_ground, &region_x, &region_y);
+  printf("main.c: cartesian region coords x: %lli, y: %lli\n", region_x, region_y);
 
-  long long imgbuf_origin_cartesian_x = cartesian_region_x * 32 * 16;
-  long long imgbuf_origin_cartesian_y = cartesian_region_y * 32 * 16 + REGION_HEIGHT - 1;
-
-  long long min_cartesian_x = imgbuf_origin_cartesian_x;
-  long long min_cartesian_y = imgbuf_origin_cartesian_y - REGION_HEIGHT + 1;
-
-  long long max_cartesian_x = cartesian_region_x * 32 * 16 + REGION_WIDTH - 1;
-  long long max_cartesian_y = cartesian_region_y * 32 * 16 + REGION_HEIGHT - 1;
+  struct lli_xy origin = region_origin_topleft(region_x, region_y);
+  struct lli_bounds bounds = region_bounds(region_x, region_y);
 
   char *output_filename;
-  if(asprintf(&output_filename, "%llix_%lliy.tif", cartesian_region_x, cartesian_region_y) == -1)
+  if(asprintf(&output_filename, "%llix_%lliy.tif", region_x, region_y) == -1)
   {
     fprintf(stderr, "Could not generate output file name.\n");
     exit(EXIT_FAILURE);
   }
 
+  /*if(cartesian_region_x == 2 && cartesian_region_y == -6) {
+    printf("writing to out.bin!\n");
+    FILE *tmpfp = fopen("out.bin", "w");
+    size_t items_written = fwrite(imgbuf, imgbuf_size, 1, tmpfp);
+    if(items_written != 1)
+    {
+      fprintf(stderr, "error writing to test file (%s)\n", strerror(errno));
+      exit(EXIT_FAILURE);
+    }
+    fclose(tmpfp);
+    exit(EXIT_SUCCESS);
+  }
+*/
   maketif(output_filename, imgbuf, compression,
-      imgbuf_origin_cartesian_x,
-      imgbuf_origin_cartesian_y,
+      origin.x,
+      origin.y,
       REGION_WIDTH,
       REGION_HEIGHT,
-      max_cartesian_x,
-      min_cartesian_x,
-      max_cartesian_y,
-      min_cartesian_y);
+      bounds.maxx,
+      bounds.minx,
+      bounds.maxy,
+      bounds.miny);
 
   free(output_filename);
   free(imgbuf); // TODO use atexit() instead to free up resources

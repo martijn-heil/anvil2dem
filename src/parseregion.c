@@ -140,6 +140,13 @@ static void handle_chunk(nbt_node *chunk,
     output_point_func_t output_point,
     void *output_point_aux)
 {
+  assert(max_cartesian_x != NULL);
+  assert(min_cartesian_x != NULL);
+  assert(max_cartesian_y != NULL);
+  assert(min_cartesian_y != NULL);
+  assert(output_point != NULL);
+  assert(chunk != NULL);
+
   nbt_node *level = nbt_find_by_name(chunk, "Level");
   if(level == NULL)
   {

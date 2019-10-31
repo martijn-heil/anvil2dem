@@ -27,16 +27,53 @@ struct lli_xy
   long long y;
 };
 
-static inline struct lli_xy get_cartesian_region_coords(long long cartesian_x, long long cartesian_y)
+struct lli_bounds
 {
-  long long cartesian_region_x = cartesian_x / REGION_WIDTH;
-  if(cartesian_x < 0 && (cartesian_x % REGION_WIDTH) != 0) cartesian_region_x--;
+  long long maxx;
+  long long minx;
+  long long maxy;
+  long long miny;
+};
 
-  long long cartesian_region_y = cartesian_y / REGION_HEIGHT;
-  if(cartesian_y < 0 && (cartesian_y % REGION_HEIGHT) != 0) cartesian_region_y--;
+static inline struct lli_xy region_coords(long long x, long long y);
+static inline struct lli_xy region_origin_topleft(long long region_x, long long region_y);
+static inline struct lli_bounds region_bounds(long long region_x, long long region_y);
 
-  struct lli_xy ret = { .x = cartesian_region_x, .y = cartesian_region_y };
+
+static inline struct lli_xy region_coords(long long x, long long y)
+{
+  long long region_x = x / REGION_WIDTH;
+  if(x < 0 && (x % REGION_WIDTH) != 0) region_x--;
+
+  long long region_y = y / REGION_HEIGHT;
+  if(y < 0 && (y % REGION_HEIGHT) != 0) region_y--;
+
+  struct lli_xy ret = { .x = region_x, .y = region_y };
   return ret;
+}
+
+static inline struct lli_xy region_origin_topleft(long long region_x, long long region_y)
+{
+  struct lli_bounds bounds = region_bounds(region_x, region_y);
+  struct lli_xy ret = { .x = bounds.minx, .y = bounds.maxy };
+  return ret;
+}
+
+static inline struct lli_bounds region_bounds(long long region_x, long long region_y)
+{
+  long long minx = region_x * 32 * 16;
+  long long miny = region_y * 32 * 16;
+
+  long long maxx = region_x * 32 * 16 + REGION_WIDTH - 1;
+  long long maxy = region_y * 32 * 16 + REGION_HEIGHT - 1;
+
+  struct lli_bounds bounds = {
+    .maxx = maxx,
+    .minx = minx,
+    .maxy = maxy,
+    .miny = miny,
+  };
+  return bounds;
 }
 
 #endif
