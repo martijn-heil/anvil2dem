@@ -42,6 +42,14 @@ static inline bool lli_xy_equals(struct lli_xy first, struct lli_xy second)
   return first.x == second.x && first.y == second.y;
 }
 
+static inline bool lli_bounds_equals(struct lli_bounds first, struct lli_bounds second)
+{
+  return first.minx == second.minx &&
+    first.maxx == second.maxx &&
+    first.miny == second.miny &&
+    first.maxy == second.maxy;
+}
+
 static inline struct lli_xy region_coords(long long x, long long y);
 static inline struct lli_xy region_origin_topleft(long long region_x, long long region_y);
 static inline struct lli_bounds region_bounds(long long region_x, long long region_y);
