@@ -6,8 +6,8 @@ cmake_install.cmake
 install_manifest.txt
 .gcc-flags.json
 cmake-build-debug
-testproject.exe
-testproject
+anvil2dem.exe
+anvil2dem
 .idea
 .vscode
 build
