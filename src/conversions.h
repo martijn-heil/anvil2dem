@@ -19,6 +19,8 @@
 #ifndef NIN_ANVIL_CONVERSIONS_H
 #define NIN_ANVIL_CONVERSIONS_H
 
+#include <stdbool.h>
+
 #include "constants.h"
 
 struct lli_xy
@@ -34,6 +36,11 @@ struct lli_bounds
   long long maxy;
   long long miny;
 };
+
+static inline bool lli_xy_equals(struct lli_xy first, struct lli_xy second)
+{
+  return first.x == second.x && first.y == second.y;
+}
 
 static inline struct lli_xy region_coords(long long x, long long y);
 static inline struct lli_xy region_origin_topleft(long long region_x, long long region_y);
