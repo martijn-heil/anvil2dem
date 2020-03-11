@@ -61,3 +61,18 @@ void test_region_origin_topleft(void)
         assert_true(lli_xy_equals(region_origin_topleft(test_region.region_x, test_region.region_y), correct_origin));
     }
 }
+
+void test_region_bounds(void)
+{
+    for (size_t i = 0; i < sizeof(extremes); i++)
+    {
+        struct test_region *test_case = extremes + i;
+        struct lli_bounds correct_bounds = { 
+            .minxx = test_case.minx, 
+            .maxx = test_case.maxx,
+            .miny = test_case.miny, 
+            .maxy = test_case.maxy,
+        };
+        assert_true(lli_bounds_equals(region_bounds(test_region.region_x, test_region.region_y), correct_bounds));
+    }
+}
