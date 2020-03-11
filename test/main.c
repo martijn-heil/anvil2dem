@@ -32,6 +32,7 @@ int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(null_test_success),
         cmocka_unit_test(test_region_coords),
+        cmocka_unit_test(test_region_bounds),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
