@@ -198,8 +198,11 @@ static void handle_chunk(nbt_node *chunk,
 
   for(size_t i = 0; i < 256; i++)
   {
+    long long minecraft_z = chunkpos.z * 16 + i / 16;
+    long long cartesian_x = chunkpos.x * 16 + i % 16;
+    long long cartesian_y = 0 - minecraft_z - 1;
     // Outputs point at absolute cartesian coordinates, so the Minecraft z is now called y and is inverted
-    output_point(chunkpos.x * 16 + i % 16, 0 - (chunkpos.z * 16 + i / 16), current_chunk_heightmap[i], output_point_aux);
+    output_point(cartesian_x, cartesian_y, current_chunk_heightmap[i], output_point_aux);
   }
 
   // Update filled-in data bounds
