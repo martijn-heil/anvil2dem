@@ -38,6 +38,7 @@ struct auxdata
   size_t size;
 };
 
+
 struct auxdata_wkt
 {
   FILE *out;
@@ -50,11 +51,22 @@ void output_point_func_wkt(long long x, long long y, uint8_t height, void *aux)
   fprintf(out, "POINT(%lli %lli " PRIu8 ")", x, y, height);
 }
 
+/*
+ * outbuf should be initialized to zero before calling this function the first time.
+ * This function will abort the program when it is sure that we are trying to overwrite an existing value.
+ * However, do not rely on this behaviour, as it might not catch all overwriting cases.
+ *
+ * This function assumes outbuf has the dimensions of Minecraft region, 512x512, one byte per block column.
+ */
 void output_point_func(long long x, long long y, uint8_t height, void *aux)
 {
+  assert(aux != NULL);
+
   struct auxdata *auxd = (struct auxdata *) aux;
   uint8_t *outbuf = auxd->outbuf;
   size_t size = auxd->size;
+
+  assert(outbuf != NULL);
 
   struct lli_xy result = region_coords(x, y);
   long long region_x = result.x;
@@ -76,6 +88,13 @@ void output_point_func(long long x, long long y, uint8_t height, void *aux)
     fprintf(stderr, "Calculated index %zu exceeds image buffer size %zu.\n", index, size);
     exit(EXIT_FAILURE);
   }
+
+  // If we're overwriting an existing value we've done something wrong.
+  // Zero is technically a valid existing value, but a really rare one in typical worlds.
+  // If the value is not zero we know for sure we're overwriting an existing value
+  // If the value is zero we are unsure whether we are overwriting an existing value or not.
+  assert(outbuf[index] == 0);
+
   outbuf[index] = height;
 }
 
