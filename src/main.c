@@ -233,12 +233,12 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  long long region_x;
-  long long region_y;
-  regionfile2dem_wkt("debug_output.wkt", files[0], is_ground, &region_x, &region_y);
-  exit(EXIT_SUCCESS);
+  //long long region_x;
+  //long long region_y;
+  //regionfile2dem_wkt("debug_output.wkt", files[0], is_ground, &region_x, &region_y);
+  //exit(EXIT_SUCCESS);
 
-  /*long long region_x;
+  long long region_x;
   long long region_y;
   regionfile2dem(imgbuf, files[0], is_ground, &region_x, &region_y);
   printf("main.c: cartesian region coords x: %lli, y: %lli\n", region_x, region_y);
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
   {
     fprintf(stderr, "Could not generate output file name.\n");
     exit(EXIT_FAILURE);
-  }*/
+  }
 
   // Debugging progress as of 2020:
   // The bug appears to not be in maketif.c, as when excluding this entire GeoTIFF making step,
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
   // The next step is outputting vector points to see whether it goes wrong in the rasterization process of the
   // elevation data that occurs in parsingutils.c
 
-  /*if(cartesian_region_x == 2 && cartesian_region_y == -6) {
+  //if(cartesian_region_x == 2 && cartesian_region_y == -6) {
     printf("writing to out.bin!\n");
     FILE *tmpfp = fopen("out.bin", "w");
     size_t items_written = fwrite(imgbuf, imgbuf_size, 1, tmpfp);
@@ -272,9 +272,9 @@ int main(int argc, char *argv[])
     }
     fclose(tmpfp);
     exit(EXIT_SUCCESS);
-  }
-*/
-  maketif(output_filename, imgbuf, compression,
+  //}
+
+/*  maketif(output_filename, imgbuf, compression,
       origin.x,
       origin.y,
       REGION_WIDTH,
@@ -282,9 +282,9 @@ int main(int argc, char *argv[])
       bounds.maxx,
       bounds.minx,
       bounds.maxy,
-      bounds.miny);
+      bounds.miny);*/
 
-  free(output_filename);
+  //free(output_filename);
   free(imgbuf); // TODO use atexit() instead to free up resources
   return EXIT_SUCCESS;
 }

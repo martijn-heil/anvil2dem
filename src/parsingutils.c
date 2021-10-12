@@ -170,10 +170,9 @@ void region2dem_wkt(FILE *outfile, const uint8_t *inbuf, size_t inbuf_size, is_g
     long long *out_region_x,
     long long *out_region_y)
 {
-  assert(outbuf != NULL);
+  assert(outfile != NULL);
   assert(out_region_x != NULL);
   assert(out_region_y != NULL);
-  assert(out != NULL);
   assert(is_ground_func != NULL);
 
   // These will get continuously updated as they are passed to parse_region()
