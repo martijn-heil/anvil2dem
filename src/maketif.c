@@ -23,6 +23,7 @@
 #include <geotiffio.h>
 
 #include "utils.h"
+#include "conversions.h"
 
 // See https://stackoverflow.com/questions/24059421
 // And see https://www.asmail.be/msg0054699392.html

@@ -25,8 +25,6 @@
 #include <stdio.h>
 #include <ctype.h>
 
-// Assumes that row and column start at 1, not at 0
-#define rowcol_to_index(row, col, column_count) ((row-1) * column_count + col - 1)
 
 #ifdef __GNUC__
   #define unused_ __attribute((unused))
