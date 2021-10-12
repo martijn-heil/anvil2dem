@@ -39,18 +39,6 @@ struct auxdata
 };
 
 
-struct auxdata_wkt
-{
-  FILE *out;
-};
-
-void output_point_func_wkt(long long x, long long y, uint8_t height, void *aux)
-{
-  struct auxdata_wkt *auxd = (struct auxdata_wkt *) aux;
-  FILE *out = auxd->out;
-  fprintf(out, "POINT(%lli %lli " PRIu8 ")", x, y, height);
-}
-
 /*
  * outbuf should be initialized to zero before calling this function the first time.
  * This function will abort the program when it is sure that we are trying to overwrite an existing value.
@@ -166,65 +154,3 @@ void regionfile2dem(uint8_t *outbuf, const char *filepath, is_ground_func_t is_g
   region2dem(outbuf, buf, filesize, is_ground_func, out_region_x, out_region_y);
 }
 
-void region2dem_wkt(FILE *outfile, const uint8_t *inbuf, size_t inbuf_size, is_ground_func_t is_ground_func,
-    long long *out_region_x,
-    long long *out_region_y)
-{
-  assert(outfile != NULL);
-  assert(out_region_x != NULL);
-  assert(out_region_y != NULL);
-  assert(is_ground_func != NULL);
-
-  // These will get continuously updated as they are passed to parse_region()
-  long long maxx = LLONG_MIN;
-  long long minx = LLONG_MAX;
-  long long maxy = LLONG_MIN;
-  long long miny = LLONG_MAX;
-  struct auxdata_wkt aux = { outfile };
-
-  parse_region(inbuf, inbuf_size,
-      &maxx,
-      &minx,
-      &maxy,
-      &miny,
-      output_point_func_wkt,
-      &aux,
-      is_ground_func);
-
-  struct lli_xy result = region_coords(minx, miny);
-  *out_region_x = result.x;
-  *out_region_y = result.y;
-}
-
-void regionfile2dem_wkt(const char *outfilepath, const char *filepath, is_ground_func_t is_ground_func,
-    long long *out_region_x,
-    long long *out_region_y)
-{
-  FILE *outfile = fopen(outfilepath, "w");
-
-  fprintf(stderr, "handling %s\n", filepath);
-  FILE *fp = fopen(filepath, "r");
-
-  if(fp == NULL)
-  {
-    fprintf(stderr, "Could not open file '%s'. (%s)", filepath, strerror(errno));
-    exit(EXIT_FAILURE);
-  }
-
-  // important not to swap 1 and BUF_SIZE around.because otherwise if(filesize < 4096) would become bugged
-  size_t filesize = fread(buf, 1, BUF_SIZE, fp);
-  if(filesize == 0)
-  {
-    fprintf(stderr, "Could not read from file. (%s)\n", strerror(errno));
-    exit(EXIT_FAILURE);
-  }
-
-  if(filesize < 4096)
-  {
-    fprintf(stderr, "region file is not at least 4096 bytes. This could indicate a corrupt region file.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  region2dem_wkt(outfile, buf, filesize, is_ground_func, out_region_x, out_region_y);
-  fclose(outfile);
-}
