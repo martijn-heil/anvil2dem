@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
       bounds.maxy,
       bounds.miny);
 
-  //free(output_filename);
+  free(output_filename);
   free(imgbuf); // TODO use atexit() instead to free up resources
   return EXIT_SUCCESS;
 }
