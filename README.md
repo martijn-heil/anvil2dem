@@ -1,6 +1,14 @@
 # anvil2dem
 Program that generates a Digital Elevation Model (DEM) from a Minecraft Anvil world region file in the form of a georeferenced GeoTIFF.
 
+## Index 
+* [Usage](#usage)
+* [Dependencies](#dependencies)
+* [Notes](#notes)
+* [Screenshots](#screenshots)
+* [License](#license)
+
+## Usage
 ```
 Usage: anvil2dem [options] region_file
 Options:
@@ -13,8 +21,30 @@ Options:
 scheme is case-insensitive and can be one of the following values:
 NONE, CCITTRLE, CCITTFAX3, CCITTFAX4, LZW, OJPEG, JPEG, NEXT, CCITTRLEW, PACKBITS, THUNDERSCAN, IT8CTPAD, IT8LW, IT8MP, IT8BL, PIXARFILM, PIXARLOG, DEFLATE, ADOBE_DEFLATE, DCS, JBIG, SGILOG, SGILOG24, JP2000
 ```
+### Building
+```
+$ ./build.sh
+```
 
+### Clean
+```
+$ ./clean.sh
+```
+
+## Dependencies
+* C11
+* xtiff
+
+## Notes
+The following arguments are not yet implemented:
+* --ignoredblocks 
+* --blocks
+
+## Screenshots
 This enables you to make some things using standard GIS software, like some examples shown below.
 ![screenshot](pictures/Screenshot_20211012_133702.png)
 ![screenshot](pictures/Screenshot_20211012_193750.png)
 ![screenshot](pictures/Screenshot_20211012_193854.png)
+
+## License
+[AGPLv3](https://www.gnu.org/licenses/agpl-3.0.en.html) 
