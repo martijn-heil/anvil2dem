@@ -1,4 +1,4 @@
-# nin-anvil
+# anvil2dem
 Program that generates a Digital Elevation Model (DEM) from a Minecraft Anvil world region file in the form of a georeferenced GeoTIFF.
 
 ```
