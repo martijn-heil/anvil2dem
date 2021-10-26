@@ -32,8 +32,8 @@ $ ./clean.sh
 ```
 
 ## Dependencies
-* C11
-* xtiff
+* Standard C (C11 or later)
+* libgeotiff
 
 ## Notes
 The following arguments are not yet implemented:
