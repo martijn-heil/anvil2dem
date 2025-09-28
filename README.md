@@ -36,9 +36,12 @@ $ ./clean.sh
 * libgeotiff
 
 ## Notes
-The following arguments are not yet implemented:
-* --ignoredblocks 
-* --blocks
+* Scans chunk block state data so ignored block rules (like stripping leaves and logs) work consistently across current Minecraft Java Edition releases with the expanded world height introduced in 1.18.
+* Legacy region files that rely on numeric block IDs are no longer supported.
+* DEMs are now exported using 16-bit samples to capture the full vertical range of modern worlds.
+* The following arguments are not yet implemented:
+  * --ignoredblocks
+  * --blocks
 
 ## Screenshots
 This enables you to make some things using standard GIS software, like some examples shown below.

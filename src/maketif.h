@@ -19,10 +19,12 @@
 #ifndef NIN_ANVIL_MAKETIF_H
 #define NIN_ANVIL_MAKETIF_H
 
+#include <stdint.h>
+
 
 void maketif(
     const char *filepath,
-    const void *buf,
+    const int16_t *buf,
     const int compression,
     const long long buf_origin_cartesian_x,
     const long long buf_origin_cartesian_y,

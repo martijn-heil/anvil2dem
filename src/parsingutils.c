@@ -34,7 +34,7 @@
 
 struct auxdata
 {
-  uint8_t *outbuf;
+  int16_t *outbuf;
   size_t size;
 };
 
@@ -46,12 +46,12 @@ struct auxdata
  *
  * This function assumes outbuf has the dimensions of Minecraft region, 512x512, one byte per block column.
  */
-void output_point_func(long long x, long long y, uint8_t height, void *aux)
+void output_point_func(long long x, long long y, int16_t height, void *aux)
 {
   assert(aux != NULL);
 
   struct auxdata *auxd = (struct auxdata *) aux;
-  uint8_t *outbuf = auxd->outbuf;
+  int16_t *outbuf = auxd->outbuf;
   size_t size = auxd->size;
 
   assert(outbuf != NULL);
@@ -81,7 +81,7 @@ void output_point_func(long long x, long long y, uint8_t height, void *aux)
   // Zero is technically a valid existing value, but a really rare one in typical worlds.
   // If the value is not zero we know for sure we're overwriting an existing value
   // If the value is zero we are unsure whether we are overwriting an existing value or not.
-  assert(outbuf[index] == 0);
+  assert(outbuf[index] == HEIGHT_UNSET);
 
   outbuf[index] = height;
 }
@@ -89,7 +89,7 @@ void output_point_func(long long x, long long y, uint8_t height, void *aux)
 /*
  * outbuf must be at least of size REGION_SIZE.
  */
-void region2dem(uint8_t *outbuf, const uint8_t *inbuf, size_t inbuf_size, is_ground_func_t is_ground_func,
+void region2dem(int16_t *outbuf, const uint8_t *inbuf, size_t inbuf_size, is_ground_func_t is_ground_func,
     long long *out_region_x,
     long long *out_region_y)
 {
@@ -124,7 +124,7 @@ void region2dem(uint8_t *outbuf, const uint8_t *inbuf, size_t inbuf_size, is_gro
 #define BUF_SIZE 52428800ULL
 static uint8_t buf[BUF_SIZE];
 
-void regionfile2dem(uint8_t *outbuf, const char *filepath, is_ground_func_t is_ground_func,
+void regionfile2dem(int16_t *outbuf, const char *filepath, is_ground_func_t is_ground_func,
     long long *out_region_x,
     long long *out_region_y)
 {

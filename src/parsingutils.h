@@ -25,11 +25,11 @@
 #include "parseregion.h" // for is_ground_func_t
 
 
-//void region2dem(uint8_t *outbuf, const uint8_t *inbuf, size_t size, is_ground_func_t is_ground_func,
+//void region2dem(int16_t *outbuf, const uint8_t *inbuf, size_t size, is_ground_func_t is_ground_func,
     //long long *out_cartesian_region_x,
     //long long *out_cartesian_region_y);
 
-void regionfile2dem(uint8_t *outbuf, const char *filepath, is_ground_func_t is_ground_func,
+void regionfile2dem(int16_t *outbuf, const char *filepath, is_ground_func_t is_ground_func,
     long long *out_cartesian_region_x,
     long long*out_cartesian_region_y);
 
