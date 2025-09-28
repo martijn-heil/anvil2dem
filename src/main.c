@@ -80,18 +80,40 @@ West(-x)    +----+----+----+----+----+----+----+----+----+----+----+----+----+--
  * Row and column are always relative to their container.
  */
 
-static uint8_t forbidden_blocks[] = {0, 18, 161, 17, 162, 8, 9};
-static const size_t forbidden_blocks_size = sizeof(forbidden_blocks);
+static bool block_name_is(const char *block_name, const char *needle)
+{
+  return block_name != NULL && strcmp(block_name, needle) == 0;
+}
+
+static bool block_name_contains(const char *block_name, const char *needle)
+{
+  return block_name != NULL && strstr(block_name, needle) != NULL;
+}
 
 /*
  * Whether a block type should be ignored or not when calculating block column height
  * This is useful for example when you want to exclude leaves and logs (trees) from the resulting DEM.
  */
-static bool is_ground(uint8_t block_id)
+static bool is_ground(const char *block_name)
 {
-  for (size_t i = 0; i < forbidden_blocks_size; i++)
+  if(block_name != NULL)
   {
-    if(forbidden_blocks[i] == block_id) return false;
+    if(block_name_is(block_name, "minecraft:air") ||
+       block_name_is(block_name, "minecraft:void_air") ||
+       block_name_is(block_name, "minecraft:cave_air") ||
+       block_name_is(block_name, "minecraft:water") ||
+       block_name_is(block_name, "minecraft:flowing_water"))
+    {
+      return false;
+    }
+
+    if(block_name_contains(block_name, "leaves") ||
+       block_name_contains(block_name, "log") ||
+       block_name_contains(block_name, "stem") ||
+       block_name_contains(block_name, "hyphae"))
+    {
+      return false;
+    }
   }
   return true;
 }
@@ -226,11 +248,15 @@ int main(int argc, char *argv[])
 
 
   const size_t imgbuf_size = REGION_SIZE;
-  uint8_t *imgbuf = calloc(imgbuf_size, 1);
+  int16_t *imgbuf = malloc(imgbuf_size * sizeof(int16_t));
   if(imgbuf == NULL)
   {
     fprintf(stderr, "Could not allocate image buffer. (%s)", strerror(errno));
     exit(EXIT_FAILURE);
+  }
+  for(size_t i = 0; i < imgbuf_size; i++)
+  {
+    imgbuf[i] = HEIGHT_UNSET;
   }
 
   long long region_x;

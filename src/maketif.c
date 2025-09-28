@@ -19,11 +19,14 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stddef.h> // for size_t
+#include <stdio.h>
 #include <xtiffio.h>
 #include <geotiffio.h>
+#include <tiff.h>
 
 #include "utils.h"
 #include "conversions.h"
+#include "constants.h"
 
 // See https://stackoverflow.com/questions/24059421
 // And see https://www.asmail.be/msg0054699392.html
@@ -43,7 +46,7 @@ static void register_custom_tiff_tags(TIFF *tif) {
 // origin is left-top
 void maketif(
     const char *filepath,
-    const void *buf,
+    const int16_t *buf,
     const int compression,
     const long long buf_origin_cartesian_x,
     const long long buf_origin_cartesian_y,
@@ -111,7 +114,8 @@ void maketif(
   TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
   TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
   TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
-  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8);
+  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 16);
+  TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_INT);
   TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
   TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
   TIFFSetField(tif, TIFFTAG_COMPRESSION, compression);
@@ -132,7 +136,8 @@ void maketif(
 
     // tdata_t is TIFFalese for `typedef void* tdata_t`
     // IMPORTANT: TIFF 'row' seems to start at 0 instead of our 1, thus we subtract 1
-    if(TIFFWriteScanline(tif, (tdata_t) (buf + rowcol_to_index(row, mincol, buf_width)), tiffrow, 0) != 1)
+    const int16_t *rowptr = buf + rowcol_to_index(row, mincol, buf_width);
+    if(TIFFWriteScanline(tif, (tdata_t) rowptr, tiffrow, 0) != 1)
     {
       fprintf(stderr, "TIFFWriteScanLine returned an error.");
       exit(EXIT_FAILURE);
@@ -153,7 +158,9 @@ void maketif(
   GTIFFree(gtif);
 
   register_custom_tiff_tags(tif);
-  TIFFSetField(tif, TIFFTAG_GDAL_NODATA, "0"); // The number must be an ASCII string.
+  char nodata_buf[16];
+  snprintf(nodata_buf, sizeof(nodata_buf), "%d", HEIGHT_UNSET);
+  TIFFSetField(tif, TIFFTAG_GDAL_NODATA, nodata_buf); // The number must be an ASCII string.
 
   XTIFFClose(tif);
 }

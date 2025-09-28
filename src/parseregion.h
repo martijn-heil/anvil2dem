@@ -24,14 +24,16 @@
 #include <stdbool.h>
 
 
-typedef void (*output_point_func_t)(long long cartesian_x, long long cartesian_y, uint8_t height, void *aux);
+typedef void (*output_point_func_t)(long long cartesian_x, long long cartesian_y, int16_t height, void *aux);
 
 
 /*
- * Whether a block type should be ignored or not when calculating block column height
- * This is useful for example when you want to exclude leaves and logs (trees) from the resulting DEM.
+ * Whether a block type should be ignored or not when calculating block column height.
+ *
+ * Modern Minecraft chunks encode blocks using palette names instead of legacy numeric
+ * identifiers, so we only expose the resolved block name when evaluating filters.
  */
-typedef bool (*is_ground_func_t)(uint8_t block_id);
+typedef bool (*is_ground_func_t)(const char *block_name);
 
 
 // buf size should be at least 4096.

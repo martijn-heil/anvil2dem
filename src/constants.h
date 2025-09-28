@@ -19,8 +19,12 @@
 #ifndef NIN_ANVIL_CONSTANTS_H
 #define NIN_ANVIL_CONSTANTS_H
 
+#include <stdint.h>
+
 #define REGION_HEIGHT 512
 #define REGION_WIDTH 512
 #define REGION_SIZE (REGION_WIDTH * REGION_HEIGHT)
+
+#define HEIGHT_UNSET INT16_MIN
 
 #endif
